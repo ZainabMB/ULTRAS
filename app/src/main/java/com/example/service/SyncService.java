@@ -31,42 +31,13 @@ public class SyncService {
 
     // Find your season ID at:
     // https://api.sportmonks.com/v3/football/seasons?api_token=YOUR_TOKEN
-    
 
-    // Runs once automatically when the app starts
+
     @PostConstruct
     public void syncOnStartup() {
         System.out.println(">>> Starting Sportmonks sync...");
 
-        syncLeagues(); // ← ADD THIS
-
-        JsonNode leaguesResponse = sportmonksService.getAllLeagues();
-        JsonNode leagues = leaguesResponse.get("data");
-
-        for (JsonNode league : leagues) {
-            JsonNode seasons = league.get("seasons");
-            if (seasons == null) continue;
-
-            for (JsonNode season : seasons) {
-                String seasonName = season.get("name").asText();
-
-                if (seasonName.equals("2024/2025")) {
-                    Long seasonId = season.get("id").asLong();
-                    System.out.println(">>> Found season: " + seasonName + " in " + league.get("name").asText() + " (ID: " + seasonId + ")");
-                    syncTeams(seasonId);
-                    syncFixtures(seasonId);
-                }
-            }
-        }
-
-        System.out.println(">>> Sync complete.");
-    }
-
-
-    // SYNC LEAGUES
-    public void syncLeagues() {
-        System.out.println(">>> Syncing leagues...");
-
+        // Fetch leagues once — reuse for syncLeagues and season loop
         JsonNode leaguesResponse = sportmonksService.getAllLeagues();
         JsonNode leagues = leaguesResponse.get("data");
 
@@ -75,42 +46,70 @@ public class SyncService {
             return;
         }
 
+        // Sync leagues first, passing the already-fetched data
+        syncLeagues(leagues);
+
+        // Then sync teams and fixtures per season
         for (JsonNode league : leagues) {
-
-            Long leagueId = league.get("id").asLong();
-            String leagueName = league.get("name").asText();
-
-            // Only save leagues you have access to
             JsonNode seasons = league.get("seasons");
             if (seasons == null) continue;
 
-            boolean has2024 = false;
+            for (JsonNode season : seasons) {
+                String seasonName = season.get("name").asText();
 
+                if ("2025/2026".equals(seasonName)) {
+                    Long seasonId = season.get("id").asLong();
+                    Long leagueId = league.get("id").asLong();
+                    System.out.println(">>> Found season: " + seasonName + " in " + league.get("name").asText() + " (ID: " + seasonId + ")");
+                    syncTeams(seasonId);
+                    syncFixtures(seasonId, leagueId);
+                }
+            }
+        }
+
+        System.out.println(">>> Sync complete.");
+    }
+
+    // ─────────────────────────────────────────
+    // SYNC LEAGUES
+    // Takes already-fetched leagues data — no extra API call
+    // ─────────────────────────────────────────
+    public void syncLeagues(JsonNode leagues) {
+        System.out.println(">>> Syncing leagues...");
+
+        for (JsonNode league : leagues) {
+            JsonNode seasons = league.get("seasons");
+            if (seasons == null) continue;
+
+            // Only save leagues that have a 2024/2025 season
+            boolean has2024 = false;
             for (JsonNode season : seasons) {
                 if ("2024/2025".equals(season.get("name").asText())) {
                     has2024 = true;
                     break;
                 }
             }
-
             if (!has2024) continue;
+
+            Long leagueId = league.get("id").asLong();
+            String leagueName = league.get("name").asText();
 
             League l = leagueRepository.findById(leagueId).orElse(new League());
             l.setLeagueId(leagueId);
             l.setLeagueName(leagueName);
             l.setCreatedAt(ZonedDateTime.now());
 
-            leagueRepository.save(l);
 
+            leagueRepository.save(l);
             System.out.println(">>> Saved league: " + leagueName + " (ID: " + leagueId + ")");
         }
+
     }
 
-
-
+    // ─────────────────────────────────────────
     // SYNC TEAMS
-
-    public void syncTeams(long seasonId) {
+    // ─────────────────────────────────────────
+    public void syncTeams(Long seasonId) {
         try {
             JsonNode response = sportmonksService.getTeamsBySeason(seasonId);
             JsonNode teams = response.get("data");
@@ -123,13 +122,10 @@ public class SyncService {
             for (JsonNode t : teams) {
                 Long teamId = t.get("id").asLong();
 
-                // Skip if already saved — Sportmonks ID is our primary key
-                if (teamRepository.existsById(teamId)) {
-                    continue;
-                }
+                if (teamRepository.existsById(teamId)) continue;
 
                 Team team = new Team();
-                team.setTeamId(teamId);  // Sportmonks ID goes directly into team_id
+                team.setTeamId(teamId);
                 team.setTeamName(t.get("name").asText());
                 team.setShortCode(t.has("short_code") ? t.get("short_code").asText() : "");
                 team.setLogo(t.has("image_path") ? t.get("image_path").asText() : "");
@@ -145,8 +141,9 @@ public class SyncService {
 
     // ─────────────────────────────────────────
     // SYNC FIXTURES
+    // Now also stores leagueId per fixture
     // ─────────────────────────────────────────
-    public void syncFixtures(Long seasonId) {
+    public void syncFixtures(Long seasonId, Long leagueId) {
         try {
             JsonNode response = sportmonksService.getFixturesBySeason(seasonId);
             JsonNode fixtures = response.get("data").get("fixtures");
@@ -159,26 +156,37 @@ public class SyncService {
             for (JsonNode f : fixtures) {
                 Long fixtureId = f.get("id").asLong();
 
+                // Only save completed fixtures
+                if (f.has("state")) {
+                    String stateName = f.get("state").get("short_name").asText();
+                    if (!"FT".equals(stateName)) {
+                        System.out.println(">>> Skipping fixture " + fixtureId + " — not finished (" + stateName + ")");
+                        continue;
+                    }
+                } else {
+                    // No state info — skip to be safe
+                    continue;
+                }
+
                 if (fixtureRepository.existsById(fixtureId)) continue;
+
 
                 Fixture fixture = new Fixture();
                 fixture.setFixtureId(fixtureId);
-
-                // created_at
+                fixture.setLeagueId(leagueId);
                 fixture.setCreatedAt(ZonedDateTime.now());
 
-                // date
+                // Date
                 if (f.has("starting_at") && !f.get("starting_at").isNull()) {
                     String dateStr = f.get("starting_at").asText().substring(0, 10);
                     fixture.setDate(LocalDate.parse(dateStr));
                 }
 
-                // home and away team
+                // Home and away team IDs
                 if (f.has("participants")) {
                     for (JsonNode p : f.get("participants")) {
                         String location = p.get("meta").get("location").asText();
                         Long teamId = p.get("id").asLong();
-
                         if ("home".equals(location)) {
                             fixture.setHomeTeamId(teamId);
                         } else if ("away".equals(location)) {
@@ -187,9 +195,9 @@ public class SyncService {
                     }
                 }
 
+                // Scores — only store if CURRENT and FT
                 if (f.has("scores")) {
                     for (JsonNode score : f.get("scores")) {
-
                         boolean isCurrent = "CURRENT".equals(score.get("description").asText());
                         JsonNode scoreNode = score.get("score");
 
@@ -209,7 +217,6 @@ public class SyncService {
                     }
                 }
 
-
                 fixtureRepository.save(fixture);
                 System.out.println(">>> Saved fixture ID: " + fixtureId);
             }
@@ -217,4 +224,5 @@ public class SyncService {
         } catch (Exception e) {
             System.out.println(">>> Fixture sync failed: " + e.getMessage());
         }
-    } }
+    }
+}
