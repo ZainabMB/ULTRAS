@@ -29,12 +29,12 @@ public class SportmonksService {
 
     // Get all leagues
     public JsonNode getAllLeagues() {
-        String url = baseUrl + "/leagues?api_token=" + apiToken;
+        String url = baseUrl + "/leagues?api_token=" + apiToken + "&include=seasons";
         return fetch(url);
     }
 
     // Get a single league by ID
-    public JsonNode getLeagueById(Long leagueId) {
+    public JsonNode getLeagueById(int leagueId) {
         String url = baseUrl + "/leagues/" + leagueId + "?api_token=" + apiToken;
         return fetch(url);
     }
@@ -67,7 +67,7 @@ public class SportmonksService {
     // FIXTURES (MATCHES)
     // ─────────────────────────────────────────
 
-    // Get fixtures by date - useful for the matches feed
+    // Get fixtures by date - for the matches feed
     // e.g. date = "2025-12-12"
     public JsonNode getFixturesByDate(String date) {
         String url = baseUrl + "/fixtures/date/" + date
@@ -87,9 +87,10 @@ public class SportmonksService {
 
     // Get fixtures by league season
     public JsonNode getFixturesBySeason(Long seasonId) {
-        String url = baseUrl + "/fixtures/seasons/" + seasonId
+        String url = baseUrl + "/seasons/" + seasonId
                 + "?api_token=" + apiToken
-                + "&include=participants;scores";
+                + "&include=fixtures.participants;fixtures.scores";
+
         return fetch(url);
     }
 

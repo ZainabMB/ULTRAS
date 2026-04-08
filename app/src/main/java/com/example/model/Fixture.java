@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 public class Fixture {
 
     @Id
-    // No @GeneratedValue — we set this directly from Sportmonks
+    // set this directly from Sportmonks
     @Column(name = "fixture_id")
     private Long fixtureId;
 
@@ -19,8 +19,11 @@ public class Fixture {
     @Column(name = "away_team_id")
     private Long awayTeamId;
 
-    @Column(name = "result")
-    private Double result;
+    @Column(name = "home_score")
+    private int homeScore;
+
+    @Column(name = "away_score")
+    private int awayScore;
 
     @Column(name = "date")
     private LocalDate date;
@@ -38,8 +41,11 @@ public class Fixture {
     public Long getAwayTeamId() { return awayTeamId; }
     public void setAwayTeamId(Long awayTeamId) { this.awayTeamId = awayTeamId; }
 
-    public Double getResult() { return result; }
-    public void setResult(Double result) { this.result = result; }
+    public int getHomeScore() { return homeScore; }
+    public void setHomeScore(int homeScore) { this.homeScore = homeScore; }
+
+    public int getAwayScore() {return awayScore;}
+    public void setAwayScore(int awayScore) {this.awayScore = awayScore;}
 
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
