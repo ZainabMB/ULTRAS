@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.model.Fixture;
+import com.example.model.League;
 import com.example.model.Team;
 import com.example.model.dto.FixtureResponse;
 import com.example.repository.FixtureRepository;
@@ -162,6 +163,8 @@ public class FixtureService {
             Fixture f = (Fixture) row[0];
             Team home = (Team) row[1];
             Team away = (Team) row[2];
+            League league = (League) row[3];
+
 
             FixtureResponse dto = new FixtureResponse();
             dto.setFixtureId(f.getFixtureId());
@@ -174,6 +177,8 @@ public class FixtureService {
 
             dto.setAwayTeamName(away.getTeamName());
             dto.setAwayTeamLogo(away.getLogo());
+
+            dto.setLeagueName(league.getLeagueName());
 
             list.add(dto);
         }

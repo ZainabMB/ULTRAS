@@ -14,48 +14,39 @@ import java.util.List;
 public interface FixtureRepository extends JpaRepository<Fixture, Long> {
 
     @Query("""
-    SELECT f, th, ta
-    FROM Fixture f
-    JOIN Team th ON th.teamId = f.homeTeamId
-    JOIN Team ta ON ta.teamId = f.awayTeamId
-    WHERE f.leagueId = :leagueId
-""")
+        SELECT f, th, ta
+        FROM Fixture f
+        JOIN Team th ON th.teamId = f.homeTeamId
+        JOIN Team ta ON ta.teamId = f.awayTeamId
+        WHERE f.leagueId = :leagueId
+    """)
     List<Object[]> findFixturesWithTeamsByLeagueId(Long leagueId);
 
     @Query("""
-    SELECT f, th, ta
+    SELECT f, th, ta, l
     FROM Fixture f
     JOIN Team th ON th.teamId = f.homeTeamId
     JOIN Team ta ON ta.teamId = f.awayTeamId
+    JOIN League l ON l.leagueId = f.leagueId
     WHERE f.date = :date
 """)
-        // Used for the matches feed screen — get all fixtures on a given date
     List<Object[]> findFixturesByDate(LocalDate date);
 
-
-    //query for finding earliest date on the db for the datapicker
-    @Query("SELECT MIN(f.date) FROM Fixture f WHERE f.leagueId = :leagueId")
-
-
-
-    //----------find earliest dates for date pickers -------//
-
-    //match page
+    // ---------- earliest date for MATCHES page ----------
+    @Query("SELECT MIN(f.date) FROM Fixture f")
     LocalDate findEarliestDate();
 
-    //individual leagues
+    // ---------- earliest date for LEAGUE page ----------
+    @Query("SELECT MIN(f.date) FROM Fixture f WHERE f.leagueId = :leagueId")
     LocalDate findEarliestDateByLeagueId(Long leagueId);
 
-    //query for join on teamid from fixtures
     @Query("""
-    SELECT f, th, ta
+    SELECT f, th, ta, l
     FROM Fixture f
     JOIN Team th ON th.teamId = f.homeTeamId
     JOIN Team ta ON ta.teamId = f.awayTeamId
+    JOIN League l ON l.leagueId = f.leagueId
     WHERE f.leagueId = :leagueId AND f.date = :date
 """)
-    List<Object[]> findFixturesWithTeamsByLeagueIdAndDate(Long leagueId, LocalDate date); }
-
-
-
-
+    List<Object[]> findFixturesWithTeamsByLeagueIdAndDate(Long leagueId, LocalDate date);
+}

@@ -163,8 +163,8 @@ public class MatchesView extends VerticalLayout {
         }
 
         // Group fixtures by league
-        Map<String, List<FixtureResponse>> byLeague = new LinkedHashMap<>();
-        for (FixtureResponse f : fixtures) {
+   Map<String, List<FixtureResponse>> byLeague = new LinkedHashMap<>();
+      for (FixtureResponse f : fixtures) {
             String league = f.getLeagueName() != null ? f.getLeagueName() : "Unknown League";
             byLeague.computeIfAbsent(league, k -> new ArrayList<>()).add(f);
         }
