@@ -49,4 +49,18 @@ public interface FixtureRepository extends JpaRepository<Fixture, Long> {
     WHERE f.leagueId = :leagueId AND f.date = :date
 """)
     List<Object[]> findFixturesWithTeamsByLeagueIdAndDate(Long leagueId, LocalDate date);
+
+    //query for a single fixture
+    @Query("""
+    SELECT f, th, ta, l
+    FROM Fixture f
+    JOIN Team th ON th.teamId = f.homeTeamId
+    JOIN Team ta ON ta.teamId = f.awayTeamId
+    JOIN League l ON l.leagueId = f.leagueId
+    WHERE f.fixtureId = :fixtureId
+""")
+    List<Object[]> findFixtureDetail(Long fixtureId);
+
+
+
 }

@@ -63,7 +63,7 @@ public class HomeView extends VerticalLayout {
                 .set("color", "white")
                 .set("border", "none")
                 .set("cursor", "pointer");
-        signInBtn.addClickListener(e -> UI.getCurrent().navigate("login"));
+        signInBtn.addClickListener(e -> UI.getCurrent().navigate("signin"));
 
         add(logoBox, title, subtitle, signUp, signInBtn);
     }

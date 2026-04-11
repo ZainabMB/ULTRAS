@@ -197,12 +197,43 @@ public class FixtureService {
         return fixtureRepository.findEarliestDate();
     }
 
-    //method for date picker in league
+    //method for getting single fixture w details
+    public FixtureResponse getFixtureDetail(Long fixtureId) {
 
+        List<Object[]> rows = fixtureRepository.findFixtureDetail(fixtureId);
 
+        if (rows.isEmpty()) return null;
 
+        Object[] row = rows.get(0); // <-- FIX
 
+        Fixture f = (Fixture) row[0];
+        Team home = (Team) row[1];
+        Team away = (Team) row[2];
+        League league = (League) row[3];
 
+        FixtureResponse dto = new FixtureResponse();
+        dto.setFixtureId(f.getFixtureId());
+        dto.setDate(f.getDate());
+        dto.setHomeScore(f.getHomeScore());
+        dto.setAwayScore(f.getAwayScore());
 
+        dto.setHomeTeamName(home.getTeamName());
+        dto.setHomeTeamLogo(home.getLogo());
+
+        dto.setAwayTeamName(away.getTeamName());
+        dto.setAwayTeamLogo(away.getLogo());
+
+        dto.setLeagueName(league.getLeagueName());
+
+        return dto;
+    }
 
 }
+
+
+
+
+
+
+
+
