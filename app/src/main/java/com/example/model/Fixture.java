@@ -36,6 +36,8 @@ public class Fixture {
     public Long getFixtureId() { return fixtureId; }
     public void setFixtureId(Long fixtureId) { this.fixtureId = fixtureId; }
 
+
+
     public Long getHomeTeamId() { return homeTeamId; }
     public void setHomeTeamId(Long homeTeamId) { this.homeTeamId = homeTeamId; }
 

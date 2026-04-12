@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 @Configuration
 @EnableWebSecurity
@@ -12,21 +13,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
-                // Disable CSRF — required for Vaadin to work
                 .csrf(csrf -> csrf.disable())
 
+                // Tell Spring Security to use Vaadin's request cache
+                .requestCache(cache -> cache
+                        .requestCache(new HttpSessionRequestCache()))
+
                 .authorizeHttpRequests(auth -> auth
-                        // Public routes
-                        .requestMatchers("/", "/login", "/signup").permitAll()
-                        // Vaadin internal routes — must be permitted
+                        .requestMatchers("/", "/login", "/signup").permitAll() //public
                         .requestMatchers("/VAADIN/**", "/vaadinServlet/**", "/frontend/**").permitAll()
-                        // Everything else requires login
+                        .requestMatchers("/connect/**", "/PUSH/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
-                // Redirect unauthenticated users back to home
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendRedirect("/"))

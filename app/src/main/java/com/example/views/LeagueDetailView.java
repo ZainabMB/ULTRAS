@@ -19,6 +19,7 @@ import java.util.List;
 @PageTitle("Ultras - League")
 public class LeagueDetailView extends VerticalLayout implements BeforeEnterObserver {
 
+
     private final LeagueService leagueService;
     private final FixtureService fixtureService;
 

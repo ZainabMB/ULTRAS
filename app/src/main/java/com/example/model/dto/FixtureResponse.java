@@ -12,6 +12,8 @@ public class FixtureResponse {
 
     private Long fixtureId;
     private LocalDate date;
+    private Long homeTeamId;
+    private Long awayTeamId;
     private String homeTeamName;
     private String awayTeamName;
     private String homeTeamLogo;
@@ -55,6 +57,12 @@ public class FixtureResponse {
     public Double getAverageRating() { return averageRating; }
     public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
 
+    public Long getHomeTeamId() {return homeTeamId;}
+    public void setHomeTeamId(Long homeTeamId) {this.homeTeamId = homeTeamId;}
+
+    public Long getAwayTeamId() {return awayTeamId;}
+    public void setAwayTeamId(Long awayTeamId) {this.awayTeamId = awayTeamId;}
+
     public static FixtureResponse fromEntity(Fixture fixture) {
         FixtureResponse dto = new FixtureResponse();
         dto.setFixtureId(fixture.getFixtureId());
@@ -62,6 +70,8 @@ public class FixtureResponse {
         dto.setHomeScore(fixture.getHomeScore());
         dto.setAwayScore(fixture.getAwayScore());
         dto.setLeagueId(fixture.getLeagueId());
+        dto.setHomeTeamId(fixture.getHomeTeamId());
+        dto.setAwayTeamId(fixture.getAwayTeamId());
         return dto;
     }
 

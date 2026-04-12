@@ -11,6 +11,14 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import java.util.List;
+
 @Route("signin")
 @PageTitle("Sign In - Ultras")
 public class SignInView extends VerticalLayout {
@@ -60,10 +68,25 @@ public class SignInView extends VerticalLayout {
             if (user == null) {
                 Notification.show("Invalid email or password");
             } else {
+                // Store userId in Vaadin session
+                VaadinSession.getCurrent().setAttribute("userId", user.getUserId());
+
+                // Tell Spring Security the user is authenticated
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                user.getUsername(), null, List.of()
+                        );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                // Persist in HTTP session via VaadinSession
+                VaadinSession.getCurrent().getSession().setAttribute(
+                        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                        SecurityContextHolder.getContext()
+                );
+
                 UI.getCurrent().navigate("matches");
             }
         });
-
         add(logoBox, title, title2, email, password, signInBtn, signUpLink);
     }
 }

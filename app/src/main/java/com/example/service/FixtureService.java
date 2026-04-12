@@ -5,6 +5,7 @@ import com.example.model.League;
 import com.example.model.Team;
 import com.example.model.dto.FixtureResponse;
 import com.example.repository.FixtureRepository;
+import com.example.repository.RatingRepository;
 import com.example.repository.TeamRepository;
 import tools.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class FixtureService {
 
     @Autowired
     private SportmonksService sportmonksService;
+
+    @Autowired
+    private RatingRepository ratingRepository;
 
     // Get all finished fixtures, most recent first
     public List<FixtureResponse> getRecentFixtures() {
@@ -204,7 +208,7 @@ public class FixtureService {
 
         if (rows.isEmpty()) return null;
 
-        Object[] row = rows.get(0); // <-- FIX
+        Object[] row = rows.get(0);
 
         Fixture f = (Fixture) row[0];
         Team home = (Team) row[1];
@@ -216,6 +220,8 @@ public class FixtureService {
         dto.setDate(f.getDate());
         dto.setHomeScore(f.getHomeScore());
         dto.setAwayScore(f.getAwayScore());
+        dto.setHomeTeamId(f.getHomeTeamId());
+        dto.setAwayTeamId(f.getAwayTeamId());
 
         dto.setHomeTeamName(home.getTeamName());
         dto.setHomeTeamLogo(home.getLogo());
@@ -224,6 +230,10 @@ public class FixtureService {
         dto.setAwayTeamLogo(away.getLogo());
 
         dto.setLeagueName(league.getLeagueName());
+
+        // Average fixture rating — team_id is null for fixture ratings
+        Double avgRating = ratingRepository.findAverageFixtureRating(fixtureId);
+        dto.setAverageRating(avgRating);
 
         return dto;
     }
