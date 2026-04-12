@@ -1,6 +1,8 @@
 package com.example.views;
 
+import com.example.model.Review;
 import com.example.model.dto.FixtureResponse;
+import com.example.repository.UserRepository;
 import com.example.service.FixtureService;
 import com.example.service.RatingService;
 import com.example.service.ReviewService;
@@ -14,28 +16,43 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 
+import java.util.List;
+import java.util.Map;
+
 @Route("fixture")
 @PageTitle("Fixture - Ultras")
-public class FixtureDetailView extends VerticalLayout implements HasUrlParameter<Long> {
-
+public class FixtureDetailView extends VerticalLayout implements HasUrlParameter<Long>, BeforeEnterObserver {
+    private String returnUrl = "matches"; // default back destination
     private final FixtureService fixtureService;
     private final RatingService ratingService;
     private final ReviewService reviewService;
     private Long userId;
+    private final UserRepository userRepository;
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        // Read optional "from" query param
+        Map<String, List<String>> params = event.getLocation()
+                .getQueryParameters().getParameters();
+        if (params.containsKey("from")) {
+            returnUrl = params.get("from").get(0);
+        }
+    }
 
     public FixtureDetailView(FixtureService fixtureService,
                              RatingService ratingService,
-                             ReviewService reviewService) {
+                             ReviewService reviewService,
+                             UserRepository userRepository) {
         this.fixtureService = fixtureService;
         this.ratingService = ratingService;
         this.reviewService = reviewService;
+        this.userRepository = userRepository;
         this.userId = (Long) VaadinSession.getCurrent().getAttribute("userId");
         setSizeFull();
         setPadding(false);
         setSpacing(false);
         getStyle().set("background-color", "#f5f5f5");
     }
-
     @Override
     public void setParameter(BeforeEvent event, Long fixtureId) {
         FixtureResponse fixture = fixtureService.getFixtureDetail(fixtureId);
@@ -61,7 +78,7 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         Button back = new Button("←");
         back.getStyle().set("background", "none").set("border", "none")
                 .set("cursor", "pointer").set("font-size", "18px");
-        back.addClickListener(e -> UI.getCurrent().navigate("matches"));
+        back.addClickListener(e -> UI.getCurrent().navigate(returnUrl));
 
         Span leagueTitle = new Span(fixture.getLeagueName() != null ? fixture.getLeagueName() : "Match");
         leagueTitle.getStyle().set("font-weight", "bold").set("font-size", "16px")
@@ -150,30 +167,121 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         tabs.setJustifyContentMode(JustifyContentMode.CENTER);
         tabs.getStyle().set("padding", "12px 16px").set("gap", "12px");
 
-        Button detailsTab = new Button("Match details");
-        detailsTab.getStyle().set("flex", "1").set("background-color", "white")
-                .set("border", "1px solid #ccc").set("border-radius", "20px")
-                .set("padding", "8px").set("cursor", "pointer");
-
-        Button reviewsTab = new Button("Reviews");
-        reviewsTab.getStyle().set("flex", "1").set("background-color", "white")
-                .set("border", "1px solid #ccc").set("border-radius", "20px")
-                .set("padding", "8px").set("cursor", "pointer");
-
-        tabs.add(detailsTab, reviewsTab);
-
+        // Content box — swapped by tabs
         Div contentBox = new Div();
         contentBox.getStyle()
                 .set("margin", "0 16px 16px 16px")
                 .set("border", "1px solid #e0e0e0")
                 .set("border-radius", "8px")
                 .set("min-height", "200px")
-                .set("background-color", "white");
+                .set("background-color", "white")
+                .set("padding", "16px");
+
+        Button detailsTab = new Button("Match details");
+        styleTabButton(detailsTab, true); // active by default
+        detailsTab.addClickListener(e -> {
+            styleTabButton(detailsTab, true);
+            styleTabButton(tabs.getComponentAt(1) instanceof Button b ? b : null, false);
+            showMatchDetails(contentBox);
+        });
+
+        Button reviewsTab = new Button("Reviews");
+        styleTabButton(reviewsTab, false);
+        reviewsTab.addClickListener(e -> {
+            styleTabButton(reviewsTab, true);
+            styleTabButton(detailsTab, false);
+            showReviews(contentBox, fixtureId);
+        });
+
+        tabs.add(detailsTab, reviewsTab);
+
+        // Default content — match details
+        showMatchDetails(contentBox);
 
         card.add(teamsRow, divider, ratingSection, tabs, contentBox);
         add(header, card);
     }
 
+    // ── Tab content: match details ────────────────
+    private void showMatchDetails(Div contentBox) {
+        contentBox.removeAll();
+        Paragraph placeholder = new Paragraph("Match details coming soon.");
+        placeholder.getStyle().set("color", "#999").set("font-size", "13px");
+        contentBox.add(placeholder);
+    }
+
+    // ── Tab content: reviews ──────────────────────
+    private void showReviews(Div contentBox, Long fixtureId) {
+        contentBox.removeAll();
+
+        List<Review> reviews = reviewService.getFixtureReviews(fixtureId);
+
+        if (reviews.isEmpty()) {
+            Paragraph empty = new Paragraph("No reviews yet. Be the first to write one!");
+            empty.getStyle().set("color", "#999").set("font-size", "13px");
+            contentBox.add(empty);
+            return;
+        }
+
+        for (Review review : reviews) {
+            contentBox.add(buildReviewCard(review));
+        }
+    }
+
+    // ── Individual review card ────────────────────
+    private Div buildReviewCard(Review review) {
+        Div card = new Div();
+        card.getStyle()
+                .set("padding", "12px")
+                .set("border-bottom", "1px solid #f0f0f0")
+                .set("margin-bottom", "8px");
+
+        HorizontalLayout topRow = new HorizontalLayout();
+        topRow.setAlignItems(Alignment.CENTER);
+        topRow.setWidthFull();
+        topRow.getStyle().set("margin-bottom", "6px");
+
+        // Look up username from DB
+        String usernameText = userRepository.findById(review.getUserId())
+                .map(u -> u.getUsername())
+                .orElse("Unknown user");
+
+        Span username = new Span(usernameText);
+        username.getStyle()
+                .set("font-weight", "bold")
+                .set("font-size", "13px")
+                .set("flex", "1");
+
+        Span date = new Span(review.getCreatedAt() != null
+                ? review.getCreatedAt().toLocalDate().toString() : "");
+        date.getStyle().set("font-size", "11px").set("color", "#999");
+
+        topRow.add(username, date);
+
+        Paragraph body = new Paragraph(review.getBody());
+        body.getStyle()
+                .set("font-size", "13px")
+                .set("color", "#333")
+                .set("margin", "0")
+                .set("line-height", "1.5");
+
+        card.add(topRow, body);
+        return card;
+    }
+    // ── Tab button styling ────────────────────────
+    private void styleTabButton(Button btn, boolean active) {
+        if (btn == null) return;
+        btn.getStyle()
+                .set("flex", "1")
+                .set("background-color", active ? "#1a1a1a" : "white")
+                .set("color", active ? "white" : "#1a1a1a")
+                .set("border", active ? "none" : "1px solid #ccc")
+                .set("border-radius", "20px")
+                .set("padding", "8px")
+                .set("cursor", "pointer");
+    }
+
+    // ── Team column ───────────────────────────────
     private VerticalLayout buildTeamCol(String logoUrl, String teamName,
                                         Long fixtureId, Long teamId) {
         VerticalLayout col = new VerticalLayout();
@@ -203,11 +311,11 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                 .set("text-align", "center");
 
         HorizontalLayout stars = buildClickableStars(fixtureId, teamId);
-
         col.add(logoCircle, name, stars);
         return col;
     }
 
+    // ── VS col ────────────────────────────────────
     private VerticalLayout buildVsCol(int homeScore, int awayScore) {
         VerticalLayout col = new VerticalLayout();
         col.setAlignItems(Alignment.CENTER);
@@ -226,7 +334,7 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         return col;
     }
 
-    // Half star rating — left half of each star = .5, right half = full
+    // ── Clickable half stars ──────────────────────
     private HorizontalLayout buildClickableStars(Long fixtureId, Long teamId) {
         HorizontalLayout row = new HorizontalLayout();
         row.setPadding(false);
@@ -244,12 +352,9 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
             }
         }
 
-        // Each star is a div containing a grey base star and a clipped gold star on top
-        Div[] starWraps = new Div[5];
         Div[] goldLayers = new Div[5];
 
         for (int i = 0; i < 5; i++) {
-            final int index = i;
             final double halfScore = i + 0.5;
             final double fullScore = i + 1.0;
 
@@ -261,9 +366,8 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                     .set("cursor", "pointer")
                     .set("display", "inline-block");
 
-            // Grey base star
-            Span greystar = new Span("★");
-            greystar.getStyle()
+            Span greyStar = new Span("★");
+            greyStar.getStyle()
                     .set("position", "absolute")
                     .set("inset", "0")
                     .set("font-size", "28px")
@@ -271,7 +375,6 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                     .set("line-height", "1")
                     .set("user-select", "none");
 
-            // Gold overlay star — width clipped to show full, half or none
             Div goldLayer = new Div();
             goldLayer.getStyle()
                     .set("position", "absolute")
@@ -282,43 +385,24 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                     .set("overflow", "hidden")
                     .set("transition", "width 0.1s ease")
                     .set("user-select", "none");
-
-            Span goldStar = new Span("★");
-            goldLayer.add(goldStar);
-
+            goldLayer.add(new Span("★"));
             goldLayers[i] = goldLayer;
-            starWraps[i] = wrap;
-            wrap.add(greystar, goldLayer);
-            row.add(wrap);
 
-            // Click — left half = .5, right half = full
-
-// Left half overlay — clicking gives .5
             Div leftHalf = new Div();
             leftHalf.getStyle()
-                    .set("position", "absolute")
-                    .set("left", "0")
-                    .set("top", "0")
-                    .set("width", "50%")
-                    .set("height", "100%")
-                    .set("z-index", "2")
-                    .set("cursor", "pointer");
+                    .set("position", "absolute").set("left", "0").set("top", "0")
+                    .set("width", "50%").set("height", "100%")
+                    .set("z-index", "2").set("cursor", "pointer");
 
-// Right half overlay — clicking gives full
             Div rightHalf = new Div();
             rightHalf.getStyle()
-                    .set("position", "absolute")
-                    .set("right", "0")
-                    .set("top", "0")
-                    .set("width", "50%")
-                    .set("height", "100%")
-                    .set("z-index", "1")
-                    .set("cursor", "pointer");
+                    .set("position", "absolute").set("right", "0").set("top", "0")
+                    .set("width", "50%").set("height", "100%")
+                    .set("z-index", "1").set("cursor", "pointer");
 
             leftHalf.addClickListener(e -> {
                 if (userId == null) {
-                    Notification.show("Please sign in to rate", 2000,
-                            Notification.Position.MIDDLE);
+                    Notification.show("Please sign in to rate", 2000, Notification.Position.MIDDLE);
                     return;
                 }
                 saveAndUpdateCss(fixtureId, teamId, halfScore, goldLayers);
@@ -326,18 +410,16 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
 
             rightHalf.addClickListener(e -> {
                 if (userId == null) {
-                    Notification.show("Please sign in to rate", 2000,
-                            Notification.Position.MIDDLE);
+                    Notification.show("Please sign in to rate", 2000, Notification.Position.MIDDLE);
                     return;
                 }
                 saveAndUpdateCss(fixtureId, teamId, fullScore, goldLayers);
             });
 
-            wrap.add(greystar, goldLayer, leftHalf, rightHalf);
+            wrap.add(greyStar, goldLayer, leftHalf, rightHalf);
             row.add(wrap);
         }
 
-        // Set initial gold widths
         updateGoldLayers(goldLayers, existing);
         return row;
     }
@@ -357,34 +439,10 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
             double full = j + 1.0;
             double half = j + 0.5;
             String width;
-            if (score >= full) {
-                width = "100%";
-            } else if (score >= half) {
-                width = "50%";
-            } else {
-                width = "0%";
-            }
+            if (score >= full) width = "100%";
+            else if (score >= half) width = "50%";
+            else width = "0%";
             goldLayers[j].getStyle().set("width", width);
         }
-    }
-
-    // Save rating and update star colours immediately
-    private void saveAndUpdate(Long fixtureId, Long teamId, double score,
-                               Span[] leftHalves, Span[] rightHalves) {
-        if (teamId == null) {
-            ratingService.submitFixtureRating(userId, fixtureId, score);
-        } else {
-            ratingService.submitTeamRating(userId, fixtureId, teamId, score);
-        }
-
-        // Update colours immediately
-        for (int j = 0; j < 5; j++) {
-            double halfScore = j + 0.5;
-            double fullScore = j + 1.0;
-            leftHalves[j].getStyle().set("color", score >= halfScore ? "#f5b301" : "#ccc");
-            rightHalves[j].getStyle().set("color", score >= fullScore ? "#f5b301" : "#ccc");
-        }
-
-        Notification.show("Rating saved!", 1500, Notification.Position.BOTTOM_START);
     }
 }

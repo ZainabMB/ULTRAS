@@ -15,4 +15,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // All reviews for a fixture
     List<Review> findByFixtureId(Long fixtureId);
+//find reviews for user by user id
+    List<Review> findByUserId(Long userId);
 }

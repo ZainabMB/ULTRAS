@@ -218,8 +218,7 @@ public class MatchesView extends VerticalLayout {
                 .set("gap", "12px");
 
         card.addClickListener(e ->
-                UI.getCurrent().navigate("fixture/" + fixture.getFixtureId()));
-
+                UI.getCurrent().navigate("fixture/" + fixture.getFixtureId() + "?from=matches"));
         // Date + FT
         Div dateCol = new Div();
         dateCol.getStyle()

@@ -38,4 +38,9 @@ public class ReviewService {
     public List<Review> getFixtureReviews(Long fixtureId) {
         return reviewRepository.findByFixtureId(fixtureId);
     }
+
+    // Get all reviews written by a user — for the Reviews page
+    public List<Review> getUserReviews(Long userId) {
+        return reviewRepository.findByUserId(userId);
+    }
 }

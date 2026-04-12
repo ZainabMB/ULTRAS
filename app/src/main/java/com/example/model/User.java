@@ -23,12 +23,6 @@ public class User {
     @Column(name = "fav_team_id")
     private Long favTeamId;
 
-    @Column(name = "tots")
-    private Long tots;
-
-    @Column(name = "fots")
-    private Long fots;
-
     @Column(name = "email", nullable= false)
     private String email;
 
@@ -64,22 +58,6 @@ public class User {
 
     public void setFavTeamId(Long favTeamId) {
         this.favTeamId = favTeamId;
-    }
-
-    public Long getTots() {
-        return tots;
-    }
-
-    public void setTots(Long tots) {
-        this.tots = tots;
-    }
-
-    public Long getFots() {
-        return fots;
-    }
-
-    public void setFots(Long fots) {
-        this.fots = fots;
     }
 
     public ZonedDateTime getCreatedAt() {

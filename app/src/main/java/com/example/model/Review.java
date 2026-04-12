@@ -38,7 +38,7 @@ public class Review {
         this.userId = userId;
     }
 
-    public Long getFixutreId() {
+    public Long getFixtureId() {
         return fixtureId;
     }
 
@@ -61,6 +61,5 @@ public class Review {
     public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
 
 }
