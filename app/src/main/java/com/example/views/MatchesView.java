@@ -1,7 +1,10 @@
 package com.example.views;
 
 import com.example.model.dto.FixtureResponse;
+import com.example.repository.FixtureRepository;
+import com.example.repository.TeamRepository;
 import com.example.service.FixtureService;
+import com.example.views.components.SearchComponent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -20,9 +23,13 @@ import java.util.*;
 public class MatchesView extends VerticalLayout {
 
     private final FixtureService fixtureService;
+    private final FixtureRepository fixtureRepository;
+    private final TeamRepository teamRepository;
 
-    public MatchesView(@Autowired FixtureService fixtureService) {
+    public MatchesView(@Autowired FixtureService fixtureService, FixtureRepository fixtureRepository, TeamRepository teamRepository) {
         this.fixtureService = fixtureService;
+        this.fixtureRepository = fixtureRepository;
+        this.teamRepository = teamRepository;
 
         setSizeFull();
         setPadding(false);
@@ -34,23 +41,21 @@ public class MatchesView extends VerticalLayout {
 
     private void buildView() {
 
-        // ───────────────────────────────────────────────
+        // ------------------------------------------------
         // NAV BAR
-        // ───────────────────────────────────────────────
+        // ------------------------------------------------
         HorizontalLayout nav = new HorizontalLayout();
         nav.setWidthFull();
         nav.setAlignItems(Alignment.CENTER);
         nav.getStyle()
                 .set("background-color", "white")
                 .set("padding", "12px 16px")
-                .set("border-bottom", "1px solid #e0e0e0");
+                .set("border-bottom", "1px solid #e0e0e0")
+                .set("position", "relative");
 
         Button profileBtn = new Button("👤");
-        profileBtn.getStyle()
-                .set("background", "none")
-                .set("border", "none")
-                .set("cursor", "pointer")
-                .set("font-size", "18px");
+        profileBtn.getStyle().set("background", "none").set("border", "none")
+                .set("cursor", "pointer").set("font-size", "18px").set("padding", "0");
         profileBtn.addClickListener(e -> UI.getCurrent().navigate("profile"));
 
         Span navTitle = new Span("ULTRAS");
@@ -60,18 +65,15 @@ public class MatchesView extends VerticalLayout {
                 .set("flex", "1")
                 .set("text-align", "center");
 
-        Button searchBtn = new Button("🔍");
-        searchBtn.getStyle()
-                .set("background", "none")
-                .set("border", "none")
-                .set("cursor", "pointer")
-                .set("font-size", "18px");
+        SearchComponent search = new SearchComponent(fixtureRepository, teamRepository);
+        search.getStyle().set("flex", "1").set("margin", "0 12px");
 
-        nav.add(profileBtn, navTitle, searchBtn);
+        nav.add(profileBtn, navTitle, search);
 
-        // ───────────────────────────────────────────────
+
+        //
         // TABS
-        // ───────────────────────────────────────────────
+        //
         HorizontalLayout tabs = new HorizontalLayout();
         tabs.setWidthFull();
         tabs.getStyle()

@@ -4,6 +4,7 @@ import com.example.model.Fixture;
 import com.example.model.dto.FixtureResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -62,6 +63,50 @@ WHERE f.fixtureId = :fixtureId
     List<Object[]> findFixtureDetail(Long fixtureId);
 
 
+    @Query("""
+        SELECT f FROM Fixture f
+        WHERE (
+            f.homeTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :query, '%'))
+            )
+            OR
+            f.awayTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :query, '%'))
+            )
+        )
+        ORDER BY f.date DESC
+        """)
+    List<Fixture> searchByTeamName(@Param("query") String query);
 
-
+    // Used for "Celtic vs Rangers" style search — match both teams
+    @Query("""
+        SELECT f FROM Fixture f
+        WHERE (
+            f.homeTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :team1, '%'))
+            )
+            AND
+            f.awayTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :team2, '%'))
+            )
+        )
+        OR (
+            f.homeTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :team2, '%'))
+            )
+            AND
+            f.awayTeamId IN (
+                SELECT t.teamId FROM Team t
+                WHERE LOWER(t.teamName) LIKE LOWER(CONCAT('%', :team1, '%'))
+            )
+        )
+        ORDER BY f.date DESC
+        """)
+    List<Fixture> searchByBothTeams(@Param("team1") String team1, @Param("team2") String team2);
 }
+
