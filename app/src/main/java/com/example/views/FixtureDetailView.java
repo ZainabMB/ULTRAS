@@ -2,10 +2,12 @@ package com.example.views;
 
 import com.example.model.Review;
 import com.example.model.dto.FixtureResponse;
+import com.example.repository.FixtureRepository;
+import com.example.repository.RatingRepository;
+import com.example.repository.TeamRepository;
 import com.example.repository.UserRepository;
-import com.example.service.FixtureService;
-import com.example.service.RatingService;
-import com.example.service.ReviewService;
+import com.example.service.*;
+import com.example.views.components.MatchDetailsComponent;
 import com.example.views.components.ReviewDialog;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -22,16 +24,53 @@ import java.util.Map;
 @Route("fixture")
 @PageTitle("Fixture - Ultras")
 public class FixtureDetailView extends VerticalLayout implements HasUrlParameter<Long>, BeforeEnterObserver {
-    private String returnUrl = "matches"; // default back destination
+
+    // ── Class-level fields ────────────────────────
     private final FixtureService fixtureService;
     private final RatingService ratingService;
     private final ReviewService reviewService;
-    private Long userId;
+    private final SportmonksService sportmonksService;
+    private final RatingRepository ratingRepository;
     private final UserRepository userRepository;
+    private final FixtureRepository fixtureRepository;
+    private final TeamRepository teamRepository;
+    private final UserService userService;
+    private Long userId;
+    private String returnUrl = "matches";
+
+    // Kept as fields so tab click listeners can reference them
+    private Button detailsTab;
+    private Button reviewsTab;
+    private Div contentBox;
+    private FixtureResponse fixture;
+
+    public FixtureDetailView(FixtureService fixtureService,
+                             RatingService ratingService,
+                             ReviewService reviewService,
+                             SportmonksService sportmonksService,
+                             RatingRepository ratingRepository,
+                             UserRepository userRepository,
+                             UserService userService,
+                             FixtureRepository fixtureRepository,
+                             TeamRepository teamRepository) {
+        this.fixtureService = fixtureService;
+        this.ratingService = ratingService;
+        this.reviewService = reviewService;
+        this.sportmonksService = sportmonksService;
+        this.ratingRepository = ratingRepository;
+        this.userRepository = userRepository;
+        this.userService = userService;
+        this.fixtureRepository = fixtureRepository;
+        this.teamRepository = teamRepository;
+        this.userId = (Long) VaadinSession.getCurrent().getAttribute("userId");
+        setSizeFull();
+        setPadding(false);
+        setSpacing(false);
+        getStyle().set("background-color", "#f5f5f5");
+    }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // Read optional "from" query param
         Map<String, List<String>> params = event.getLocation()
                 .getQueryParameters().getParameters();
         if (params.containsKey("from")) {
@@ -39,23 +78,9 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         }
     }
 
-    public FixtureDetailView(FixtureService fixtureService,
-                             RatingService ratingService,
-                             ReviewService reviewService,
-                             UserRepository userRepository) {
-        this.fixtureService = fixtureService;
-        this.ratingService = ratingService;
-        this.reviewService = reviewService;
-        this.userRepository = userRepository;
-        this.userId = (Long) VaadinSession.getCurrent().getAttribute("userId");
-        setSizeFull();
-        setPadding(false);
-        setSpacing(false);
-        getStyle().set("background-color", "#f5f5f5");
-    }
     @Override
     public void setParameter(BeforeEvent event, Long fixtureId) {
-        FixtureResponse fixture = fixtureService.getFixtureDetail(fixtureId);
+        fixture = fixtureService.getFixtureDetail(fixtureId);
 
         if (fixture == null) {
             add(new H3("Fixture not found"));
@@ -80,11 +105,21 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                 .set("cursor", "pointer").set("font-size", "18px");
         back.addClickListener(e -> UI.getCurrent().navigate(returnUrl));
 
-        Span leagueTitle = new Span(fixture.getLeagueName() != null ? fixture.getLeagueName() : "Match");
-        leagueTitle.getStyle().set("font-weight", "bold").set("font-size", "16px")
-                .set("flex", "1").set("text-align", "center");
+// Stack league name + date vertically in the centre
+        VerticalLayout titleCol = new VerticalLayout();
+        titleCol.setPadding(false);
+        titleCol.setSpacing(false);
+        titleCol.setAlignItems(Alignment.CENTER);
+        titleCol.getStyle().set("flex", "1");
 
-        header.add(back, leagueTitle);
+        Span leagueTitle = new Span(fixture.getLeagueName() != null ? fixture.getLeagueName() : "Match");
+        leagueTitle.getStyle().set("font-weight", "bold").set("font-size", "16px");
+
+        Span dateSpan = new Span(fixture.getDate() != null ? fixture.getDate().toString() : "");
+        dateSpan.getStyle().set("font-size", "12px").set("color", "#999");
+
+        titleCol.add(leagueTitle, dateSpan);
+        header.add(back, titleCol);
 
         // ── Main card ─────────────────────────────
         Div card = new Div();
@@ -167,8 +202,8 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         tabs.setJustifyContentMode(JustifyContentMode.CENTER);
         tabs.getStyle().set("padding", "12px 16px").set("gap", "12px");
 
-        // Content box — swapped by tabs
-        Div contentBox = new Div();
+        // Content box — class field so tab listeners can swap content
+        contentBox = new Div();
         contentBox.getStyle()
                 .set("margin", "0 16px 16px 16px")
                 .set("border", "1px solid #e0e0e0")
@@ -177,41 +212,48 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
                 .set("background-color", "white")
                 .set("padding", "16px");
 
-        Button detailsTab = new Button("Match details");
-        styleTabButton(detailsTab, true); // active by default
+        // Tabs — class fields so they can reference each other
+        detailsTab = new Button("Match details");
+        reviewsTab = new Button("Reviews");
+
+        styleTabButton(detailsTab, true);
+        styleTabButton(reviewsTab, false);
+
         detailsTab.addClickListener(e -> {
             styleTabButton(detailsTab, true);
-            styleTabButton(tabs.getComponentAt(1) instanceof Button b ? b : null, false);
-            showMatchDetails(contentBox);
+            styleTabButton(reviewsTab, false);
+            showMatchDetails();
         });
 
-        Button reviewsTab = new Button("Reviews");
-        styleTabButton(reviewsTab, false);
         reviewsTab.addClickListener(e -> {
             styleTabButton(reviewsTab, true);
             styleTabButton(detailsTab, false);
-            showReviews(contentBox, fixtureId);
+            showReviews(fixtureId);
         });
 
         tabs.add(detailsTab, reviewsTab);
 
-        // Default content — match details
-        showMatchDetails(contentBox);
+        // Default — match details
+        showMatchDetails();
 
         card.add(teamsRow, divider, ratingSection, tabs, contentBox);
         add(header, card);
     }
 
-    // ── Tab content: match details ────────────────
-    private void showMatchDetails(Div contentBox) {
+    // ── Tab: match details ────────────────────────
+    private void showMatchDetails() {
         contentBox.removeAll();
-        Paragraph placeholder = new Paragraph("Match details coming soon.");
-        placeholder.getStyle().set("color", "#999").set("font-size", "13px");
-        contentBox.add(placeholder);
+        contentBox.add(new MatchDetailsComponent(
+                fixture,
+                sportmonksService,
+                ratingRepository,
+                fixtureRepository,
+                teamRepository
+        ));
     }
 
-    // ── Tab content: reviews ──────────────────────
-    private void showReviews(Div contentBox, Long fixtureId) {
+    // ── Tab: reviews ──────────────────────────────
+    private void showReviews(Long fixtureId) {
         contentBox.removeAll();
 
         List<Review> reviews = reviewService.getFixtureReviews(fixtureId);
@@ -228,7 +270,7 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         }
     }
 
-    // ── Individual review card ────────────────────
+    // ── Review card ───────────────────────────────
     private Div buildReviewCard(Review review) {
         Div card = new Div();
         card.getStyle()
@@ -241,16 +283,11 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         topRow.setWidthFull();
         topRow.getStyle().set("margin-bottom", "6px");
 
-        // Look up username from DB
         String usernameText = userRepository.findById(review.getUserId())
-                .map(u -> u.getUsername())
-                .orElse("Unknown user");
+                .map(u -> u.getUsername()).orElse("Unknown user");
 
         Span username = new Span(usernameText);
-        username.getStyle()
-                .set("font-weight", "bold")
-                .set("font-size", "13px")
-                .set("flex", "1");
+        username.getStyle().set("font-weight", "bold").set("font-size", "13px").set("flex", "1");
 
         Span date = new Span(review.getCreatedAt() != null
                 ? review.getCreatedAt().toLocalDate().toString() : "");
@@ -259,15 +296,13 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
         topRow.add(username, date);
 
         Paragraph body = new Paragraph(review.getBody());
-        body.getStyle()
-                .set("font-size", "13px")
-                .set("color", "#333")
-                .set("margin", "0")
-                .set("line-height", "1.5");
+        body.getStyle().set("font-size", "13px").set("color", "#333")
+                .set("margin", "0").set("line-height", "1.5");
 
         card.add(topRow, body);
         return card;
     }
+
     // ── Tab button styling ────────────────────────
     private void styleTabButton(Button btn, boolean active) {
         if (btn == null) return;
@@ -360,31 +395,21 @@ public class FixtureDetailView extends VerticalLayout implements HasUrlParameter
 
             Div wrap = new Div();
             wrap.getStyle()
-                    .set("position", "relative")
-                    .set("width", "28px")
-                    .set("height", "28px")
-                    .set("cursor", "pointer")
-                    .set("display", "inline-block");
+                    .set("position", "relative").set("width", "28px").set("height", "28px")
+                    .set("cursor", "pointer").set("display", "inline-block");
 
             Span greyStar = new Span("★");
             greyStar.getStyle()
-                    .set("position", "absolute")
-                    .set("inset", "0")
-                    .set("font-size", "28px")
-                    .set("color", "#ddd")
-                    .set("line-height", "1")
-                    .set("user-select", "none");
+                    .set("position", "absolute").set("inset", "0")
+                    .set("font-size", "28px").set("color", "#ddd")
+                    .set("line-height", "1").set("user-select", "none");
 
             Div goldLayer = new Div();
             goldLayer.getStyle()
-                    .set("position", "absolute")
-                    .set("inset", "0")
-                    .set("font-size", "28px")
-                    .set("color", "#f5b301")
-                    .set("line-height", "1")
-                    .set("overflow", "hidden")
-                    .set("transition", "width 0.1s ease")
-                    .set("user-select", "none");
+                    .set("position", "absolute").set("inset", "0")
+                    .set("font-size", "28px").set("color", "#f5b301")
+                    .set("line-height", "1").set("overflow", "hidden")
+                    .set("transition", "width 0.1s ease").set("user-select", "none");
             goldLayer.add(new Span("★"));
             goldLayers[i] = goldLayer;
 

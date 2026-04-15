@@ -108,5 +108,14 @@ WHERE f.fixtureId = :fixtureId
         ORDER BY f.date DESC
         """)
     List<Fixture> searchByBothTeams(@Param("team1") String team1, @Param("team2") String team2);
+
+    // Get all fixtures between two specific teams
+    @Query("""
+    SELECT f FROM Fixture f
+    WHERE (f.homeTeamId = :team1 AND f.awayTeamId = :team2)
+       OR (f.homeTeamId = :team2 AND f.awayTeamId = :team1)
+    ORDER BY f.date DESC
+    """)
+    List<Fixture> findHeadToHead(@Param("team1") Long team1, @Param("team2") Long team2);
 }
 
