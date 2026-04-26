@@ -15,13 +15,21 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 
 public class MatchDetailsComponent extends VerticalLayout {
 
-    // Event type IDs from Sportmonks
-    private static final int GOAL_TYPE = 14;
-    private static final int YELLOW_CARD_TYPE = 18;
-    private static final int RED_CARD_TYPE = 15;
+    private static final String BLUE      = "rgb(0,97,127)";
+    private static final String DARK      = "#1c1c1e";
+    private static final String DARK_CARD = "#2a2a2e";
+    private static final String BORDER    = "#3a3a3e";
+    private static final String GREY_TEXT = "#a0a0a8";
+    private static final String WHITE     = "#ffffff";
+
+    private static final int GOAL_TYPE         = 14;
+    private static final int YELLOW_CARD_TYPE  = 18;
+    private static final int RED_CARD_TYPE     = 15;
     private static final int SUBSTITUTION_TYPE = 16;
 
     public MatchDetailsComponent(FixtureResponse fixture,
@@ -31,19 +39,17 @@ public class MatchDetailsComponent extends VerticalLayout {
                                  TeamRepository teamRepository) {
         setPadding(false);
         setSpacing(false);
-        getStyle().set("gap", "16px");
         setWidthFull();
+        getStyle().set("gap", "12px").set("box-sizing", "border-box");
 
         try {
             JsonNode data = sportmonksService.getFixtureFullDetail(fixture.getFixtureId()).get("data");
-
             add(buildEventsSection(data, fixture));
             add(buildH2HSection(fixture, ratingRepository, fixtureRepository, teamRepository));
             add(buildLineupsSection(data, fixture));
-
         } catch (Exception e) {
-            Paragraph error = new Paragraph("Could not load match details.");
-            error.getStyle().set("color", "#999").set("font-size", "13px");
+            Span error = new Span("");
+            error.getStyle().set("color", GREY_TEXT).set("font-size", "13px");
             add(error);
         }
     }
@@ -59,8 +65,6 @@ public class MatchDetailsComponent extends VerticalLayout {
 
         List<JsonNode> events = new ArrayList<>();
         data.get("events").forEach(events::add);
-
-        // Sort by minute
         events.sort((a, b) -> {
             int minA = a.has("minute") ? a.get("minute").asInt() : 0;
             int minB = b.has("minute") ? b.get("minute").asInt() : 0;
@@ -69,8 +73,6 @@ public class MatchDetailsComponent extends VerticalLayout {
 
         for (JsonNode event : events) {
             int typeId = event.has("type_id") ? event.get("type_id").asInt() : 0;
-
-            // Only show goals, cards and substitutions
             if (typeId != GOAL_TYPE && typeId != YELLOW_CARD_TYPE
                     && typeId != RED_CARD_TYPE && typeId != SUBSTITUTION_TYPE) continue;
 
@@ -80,54 +82,34 @@ public class MatchDetailsComponent extends VerticalLayout {
                 playerName = event.get("player").get("name").asText();
             }
 
-            // Which team — home or away
-            Long eventTeamId = event.has("participant_id")
-                    ? event.get("participant_id").asLong() : null;
+            Long eventTeamId = event.has("participant_id") ? event.get("participant_id").asLong() : null;
             boolean isHome = eventTeamId != null && eventTeamId.equals(fixture.getHomeTeamId());
 
             String icon = switch (typeId) {
-                case GOAL_TYPE -> "⚽";
-                case YELLOW_CARD_TYPE -> "🟨";
-                case RED_CARD_TYPE -> "🟥";
+                case GOAL_TYPE         -> "⚽";
+                case YELLOW_CARD_TYPE  -> "🟨";
+                case RED_CARD_TYPE     -> "🟥";
                 case SUBSTITUTION_TYPE -> "🔄";
-                default -> "•";
+                default                -> "•";
             };
 
             Div row = new Div();
             row.getStyle()
-                    .set("display", "flex")
-                    .set("align-items", "center")
+                    .set("display", "flex").set("align-items", "center")
                     .set("padding", "6px 0")
-                    .set("border-bottom", "1px solid #f5f5f5")
-                    .set("gap", "8px");
+                    .set("border-bottom", "1px solid " + BORDER)
+                    .set("gap", "6px").set("width", "100%");
 
             if (isHome) {
-                // Home: icon + player left-aligned
-                Span iconSpan = new Span(icon);
-                iconSpan.getStyle().set("font-size", "14px");
-
-                Span minuteSpan = new Span(minute);
-                minuteSpan.getStyle().set("font-size", "12px").set("color", "#999")
-                        .set("min-width", "32px");
-
-                Span nameSpan = new Span(playerName);
-                nameSpan.getStyle().set("font-size", "13px").set("flex", "1");
-
-                row.add(iconSpan, minuteSpan, nameSpan);
+                Span iconSpan = new Span(icon); iconSpan.getStyle().set("font-size", "13px");
+                Span minSpan = new Span(minute); minSpan.getStyle().set("font-size", "11px").set("color", GREY_TEXT).set("min-width", "28px");
+                Span nameSpan = new Span(playerName); nameSpan.getStyle().set("font-size", "12px").set("color", WHITE).set("flex", "1");
+                row.add(iconSpan, minSpan, nameSpan);
             } else {
-                // Away: right-aligned
-                Span nameSpan = new Span(playerName);
-                nameSpan.getStyle().set("font-size", "13px").set("flex", "1")
-                        .set("text-align", "right");
-
-                Span minuteSpan = new Span(minute);
-                minuteSpan.getStyle().set("font-size", "12px").set("color", "#999")
-                        .set("min-width", "32px").set("text-align", "right");
-
-                Span iconSpan = new Span(icon);
-                iconSpan.getStyle().set("font-size", "14px");
-
-                row.add(nameSpan, minuteSpan, iconSpan);
+                Span nameSpan = new Span(playerName); nameSpan.getStyle().set("font-size", "12px").set("color", WHITE).set("flex", "1").set("text-align", "right");
+                Span minSpan = new Span(minute); minSpan.getStyle().set("font-size", "11px").set("color", GREY_TEXT).set("min-width", "28px").set("text-align", "right");
+                Span iconSpan = new Span(icon); iconSpan.getStyle().set("font-size", "13px");
+                row.add(nameSpan, minSpan, iconSpan);
             }
 
             card.add(row);
@@ -151,20 +133,19 @@ public class MatchDetailsComponent extends VerticalLayout {
             return card;
         }
 
-        // Header
+        // Header row
         Div headerRow = new Div();
         headerRow.getStyle()
                 .set("display", "flex").set("justify-content", "space-between")
-                .set("padding", "0 0 8px 0").set("border-bottom", "1px solid #e0e0e0")
+                .set("padding", "0 0 8px 0")
+                .set("border-bottom", "1px solid " + BORDER)
                 .set("margin-bottom", "4px");
 
         Span homeHeader = new Span(fixture.getHomeTeamName());
-        homeHeader.getStyle().set("font-size", "12px").set("font-weight", "bold")
-                .set("color", "#555");
+        homeHeader.getStyle().set("font-size", "11px").set("font-weight", "bold").set("color", GREY_TEXT);
 
         Span awayHeader = new Span(fixture.getAwayTeamName());
-        awayHeader.getStyle().set("font-size", "12px").set("font-weight", "bold")
-                .set("color", "#555");
+        awayHeader.getStyle().set("font-size", "11px").set("font-weight", "bold").set("color", GREY_TEXT);
 
         headerRow.add(homeHeader, awayHeader);
         card.add(headerRow);
@@ -173,51 +154,39 @@ public class MatchDetailsComponent extends VerticalLayout {
         for (Fixture f : h2hFixtures) {
             if (count >= 5) break;
 
-            // Work out which team was home in this specific fixture
-            String homeTeamName = teamRepository.findById(f.getHomeTeamId())
-                    .map(Team::getTeamName).orElse("?");
-            String awayTeamName = teamRepository.findById(f.getAwayTeamId())
-                    .map(Team::getTeamName).orElse("?");
-
-            // Get avg rating from DB
+            String homeName = teamRepository.findById(f.getHomeTeamId()).map(Team::getTeamName).orElse("?");
+            String awayName = teamRepository.findById(f.getAwayTeamId()).map(Team::getTeamName).orElse("?");
             Double avgRating = ratingRepository.findAverageFixtureRating(f.getFixtureId());
 
-            // Stars string
-            String starsStr = "Not rated";
-            if (avgRating != null) {
-                int full = (int) avgRating.doubleValue();
-                boolean half = (avgRating - full) >= 0.5;
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < full; i++) sb.append("★");
-                if (half) sb.append("½");
-                for (int i = full + (half ? 1 : 0); i < 5; i++) sb.append("☆");
-                starsStr = sb.toString();
-            }
+            String starsStr = avgRating != null ? buildStars(avgRating) : "—";
 
             Div row = new Div();
             row.getStyle()
                     .set("display", "flex").set("align-items", "center")
-                    .set("padding", "8px 0").set("border-bottom", "1px solid #f5f5f5")
-                    .set("cursor", "pointer");
+                    .set("padding", "8px 0")
+                    .set("border-bottom", "1px solid " + BORDER)
+                    .set("cursor", "pointer").set("width", "100%");
 
-            // Clicking navigates to that fixture
-            row.addClickListener(e ->
-                    UI.getCurrent().navigate("fixture/" + f.getFixtureId() + "?from=matches"));
+            row.getElement().addEventListener("mouseover",
+                    e -> row.getStyle().set("background-color", "#303036"));
+            row.getElement().addEventListener("mouseout",
+                    e -> row.getStyle().set("background-color", "transparent"));
 
-            Span dateSpan = new Span(f.getDate() != null ? f.getDate().toString() : "?");
-            dateSpan.getStyle().set("font-size", "11px").set("color", "#999")
-                    .set("min-width", "90px");
+            final Long fId = f.getFixtureId();
+            row.addClickListener(e -> UI.getCurrent().navigate("fixture/" + fId + "?from=matches"));
 
-            // Show actual home vs away for that fixture
-            Span scoreSpan = new Span(homeTeamName + "  " + f.getHomeScore() + " - " + f.getAwayScore() + "  " + awayTeamName);
-            scoreSpan.getStyle().set("font-size", "13px").set("font-weight", "bold")
+            Span dateSpan = new Span(f.getDate() != null ? f.getDate().toString().substring(2) : "?");
+            dateSpan.getStyle().set("font-size", "11px").set("color", GREY_TEXT).set("min-width", "80px");
+
+            Span scoreSpan = new Span(homeName + "  " + f.getHomeScore() + " – " + f.getAwayScore() + "  " + awayName);
+            scoreSpan.getStyle().set("font-size", "12px").set("color", WHITE)
                     .set("flex", "1").set("text-align", "center");
 
             Span starsSpan = new Span(starsStr);
             starsSpan.getStyle()
-                    .set("font-size", "13px")
-                    .set("color", avgRating != null ? "#f5b301" : "#ccc")
-                    .set("min-width", "80px").set("text-align", "right");
+                    .set("font-size", "12px")
+                    .set("color", avgRating != null ? "#f5b301" : GREY_TEXT)
+                    .set("min-width", "60px").set("text-align", "right");
 
             row.add(dateSpan, scoreSpan, starsSpan);
             card.add(row);
@@ -242,106 +211,91 @@ public class MatchDetailsComponent extends VerticalLayout {
         for (JsonNode player : data.get("lineups")) {
             Long teamId = player.has("team_id") ? player.get("team_id").asLong() : null;
             if (teamId == null) continue;
-
-            if (teamId.equals(fixture.getHomeTeamId())) {
-                homePlayers.add(player);
-            } else if (teamId.equals(fixture.getAwayTeamId())) {
-                awayPlayers.add(player);
-            }
+            if (teamId.equals(fixture.getHomeTeamId())) homePlayers.add(player);
+            else if (teamId.equals(fixture.getAwayTeamId())) awayPlayers.add(player);
         }
 
-        // Split starters (type_id=11) and subs (type_id=12) for each team
         List<JsonNode> homeStarters = filterByType(homePlayers, 11);
-        List<JsonNode> homeSubs = filterByType(homePlayers, 12);
+        List<JsonNode> homeSubs     = filterByType(homePlayers, 12);
         List<JsonNode> awayStarters = filterByType(awayPlayers, 11);
-        List<JsonNode> awaySubs = filterByType(awayPlayers, 12);
+        List<JsonNode> awaySubs     = filterByType(awayPlayers, 12);
 
-        // Sort starters by formation_field
         homeStarters.sort((a, b) -> getFormationField(a) - getFormationField(b));
         awayStarters.sort((a, b) -> getFormationField(a) - getFormationField(b));
 
         // Team headers
-        HorizontalLayout teamHeaders = new HorizontalLayout();
-        teamHeaders.setWidthFull();
-        teamHeaders.getStyle().set("margin-bottom", "8px");
+        Div teamHeaders = new Div();
+        teamHeaders.getStyle().set("display", "flex").set("justify-content", "space-between")
+                .set("margin-bottom", "8px").set("width", "100%");
 
-        Span homeHeader = new Span(fixture.getHomeTeamName());
-        homeHeader.getStyle().set("font-weight", "bold").set("font-size", "13px")
-                .set("flex", "1");
+        Span homeH = new Span(fixture.getHomeTeamName());
+        homeH.getStyle().set("font-weight", "bold").set("font-size", "12px").set("color", WHITE);
 
-        Span awayHeader = new Span(fixture.getAwayTeamName());
-        awayHeader.getStyle().set("font-weight", "bold").set("font-size", "13px")
-                .set("flex", "1").set("text-align", "right");
+        Span awayH = new Span(fixture.getAwayTeamName());
+        awayH.getStyle().set("font-weight", "bold").set("font-size", "12px").set("color", WHITE);
 
-        teamHeaders.add(homeHeader, awayHeader);
+        teamHeaders.add(homeH, awayH);
         card.add(teamHeaders);
 
-        // Starters
+        // Starters label
         Span startersLabel = new Span("Starting XI");
-        startersLabel.getStyle().set("font-size", "11px").set("color", "#999")
-                .set("display", "block").set("margin", "8px 0 4px 0");
+        startersLabel.getStyle().set("font-size", "11px").set("color", BLUE)
+                .set("display", "block").set("margin", "4px 0");
         card.add(startersLabel);
 
         int maxStarters = Math.max(homeStarters.size(), awayStarters.size());
         for (int i = 0; i < maxStarters; i++) {
             card.add(buildPlayerRow(
                     i < homeStarters.size() ? homeStarters.get(i) : null,
-                    i < awayStarters.size() ? awayStarters.get(i) : null
-            ));
+                    i < awayStarters.size() ? awayStarters.get(i) : null));
         }
 
-        // Subs
         if (!homeSubs.isEmpty() || !awaySubs.isEmpty()) {
             Span subsLabel = new Span("Substitutes");
-            subsLabel.getStyle().set("font-size", "11px").set("color", "#999")
-                    .set("display", "block").set("margin", "12px 0 4px 0");
+            subsLabel.getStyle().set("font-size", "11px").set("color", BLUE)
+                    .set("display", "block").set("margin", "10px 0 4px 0");
             card.add(subsLabel);
 
             int maxSubs = Math.max(homeSubs.size(), awaySubs.size());
             for (int i = 0; i < maxSubs; i++) {
                 card.add(buildPlayerRow(
                         i < homeSubs.size() ? homeSubs.get(i) : null,
-                        i < awaySubs.size() ? awaySubs.get(i) : null
-                ));
+                        i < awaySubs.size() ? awaySubs.get(i) : null));
             }
         }
 
         return card;
     }
 
-    // ── Player row — home left, away right ────────
     private Div buildPlayerRow(JsonNode homePlayer, JsonNode awayPlayer) {
         Div row = new Div();
         row.getStyle()
                 .set("display", "flex").set("align-items", "center")
-                .set("padding", "4px 0").set("border-bottom", "1px solid #f9f9f9");
+                .set("padding", "4px 0")
+                .set("border-bottom", "1px solid #222226")
+                .set("width", "100%");
 
-        // Home player
         Div homeDiv = new Div();
         homeDiv.getStyle().set("flex", "1").set("display", "flex")
-                .set("align-items", "center").set("gap", "6px");
+                .set("align-items", "center").set("gap", "4px");
 
         if (homePlayer != null) {
             Span jersey = new Span(getJersey(homePlayer));
-            jersey.getStyle().set("font-size", "11px").set("color", "#999")
-                    .set("min-width", "20px");
+            jersey.getStyle().set("font-size", "10px").set("color", GREY_TEXT).set("min-width", "18px");
             Span name = new Span(getPlayerName(homePlayer));
-            name.getStyle().set("font-size", "12px");
+            name.getStyle().set("font-size", "11px").set("color", WHITE);
             homeDiv.add(jersey, name);
         }
 
-        // Away player
         Div awayDiv = new Div();
         awayDiv.getStyle().set("flex", "1").set("display", "flex")
-                .set("align-items", "center").set("justify-content", "flex-end")
-                .set("gap", "6px");
+                .set("align-items", "center").set("justify-content", "flex-end").set("gap", "4px");
 
         if (awayPlayer != null) {
             Span name = new Span(getPlayerName(awayPlayer));
-            name.getStyle().set("font-size", "12px");
+            name.getStyle().set("font-size", "11px").set("color", WHITE);
             Span jersey = new Span(getJersey(awayPlayer));
-            jersey.getStyle().set("font-size", "11px").set("color", "#999")
-                    .set("min-width", "20px").set("text-align", "right");
+            jersey.getStyle().set("font-size", "10px").set("color", GREY_TEXT).set("min-width", "18px").set("text-align", "right");
             awayDiv.add(name, jersey);
         }
 
@@ -349,11 +303,51 @@ public class MatchDetailsComponent extends VerticalLayout {
         return row;
     }
 
+    // ── Card builder ──────────────────────────────
+    private Div buildCard(String title) {
+        Div card = new Div();
+        card.setWidthFull();
+        card.getStyle()
+                .set("background-color", DARK_CARD)
+                .set("border", "1px solid " + BORDER)
+                .set("border-radius", "10px")
+                .set("padding", "14px")
+                .set("box-sizing", "border-box")
+                .set("overflow", "hidden")
+                .set("margin-bottom", "10px");
+
+        Div headerRow = new Div();
+        headerRow.getStyle().set("display", "flex").set("align-items", "center")
+                .set("gap", "8px").set("margin-bottom", "10px");
+
+        Div accentBar = new Div();
+        accentBar.getStyle().set("width", "3px").set("height", "14px")
+                .set("background-color", BLUE).set("border-radius", "2px");
+
+        Span titleSpan = new Span(title);
+        titleSpan.getStyle().set("font-weight", "bold").set("font-size", "12px")
+                .set("color", GREY_TEXT).set("letter-spacing", "0.5px");
+
+        headerRow.add(accentBar, titleSpan);
+        card.add(headerRow);
+        return card;
+    }
+
     // ── Helpers ───────────────────────────────────
+    private String buildStars(double avg) {
+        int full = (int) avg;
+        boolean half = (avg - full) >= 0.5;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < full; i++) sb.append("★");
+        if (half) sb.append("½");
+        for (int i = full + (half ? 1 : 0); i < 5; i++) sb.append("☆");
+        return sb.toString();
+    }
+
     private List<JsonNode> filterByType(List<JsonNode> players, int typeId) {
         return players.stream()
                 .filter(p -> p.has("type_id") && p.get("type_id").asInt() == typeId)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     private int getFormationField(JsonNode player) {
@@ -362,9 +356,8 @@ public class MatchDetailsComponent extends VerticalLayout {
     }
 
     private String getPlayerName(JsonNode player) {
-        if (player.has("player") && player.get("player").has("name")) {
+        if (player.has("player") && player.get("player").has("name"))
             return player.get("player").get("name").asText();
-        }
         return "Unknown";
     }
 
@@ -373,29 +366,9 @@ public class MatchDetailsComponent extends VerticalLayout {
                 ? player.get("jersey_number").asText() : "-";
     }
 
-    private Div buildCard(String title) {
-        Div card = new Div();
-        card.setWidthFull();
-        card.getStyle()
-                .set("background-color", "white")
-                .set("border", "1px solid #e0e0e0")
-                .set("border-radius", "8px")
-                .set("padding", "16px")
-                .set("margin-bottom", "12px");
-
-        Span titleSpan = new Span(title);
-        titleSpan.getStyle()
-                .set("font-weight", "bold").set("font-size", "14px")
-                .set("display", "block").set("margin-bottom", "12px")
-                .set("color", "#333");
-
-        card.add(titleSpan);
-        return card;
-    }
-
     private Span noData(String msg) {
         Span s = new Span(msg);
-        s.getStyle().set("color", "#999").set("font-size", "13px");
+        s.getStyle().set("color", GREY_TEXT).set("font-size", "13px");
         return s;
     }
 }

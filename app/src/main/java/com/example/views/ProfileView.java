@@ -23,6 +23,14 @@ import java.util.Optional;
 @PageTitle("Profile - Ultras")
 public class ProfileView extends VerticalLayout {
 
+    private static final String BLUE      = "rgb(0,97,127)";
+    private static final String DARK      = "#1c1c1e";
+    private static final String DARK_CARD = "#2a2a2e";
+    private static final String DARK_NAV  = "#232326";
+    private static final String BORDER    = "#3a3a3e";
+    private static final String GREY_TEXT = "#a0a0a8";
+    private static final String WHITE     = "#ffffff";
+
     public ProfileView(UserRepository userRepository,
                        TeamRepository teamRepository,
                        FixtureRepository fixtureRepository,
@@ -31,200 +39,177 @@ public class ProfileView extends VerticalLayout {
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("background-color", "#f5f5f5");
+        getStyle().set("background-color", DARK);
 
         Long userId = (Long) VaadinSession.getCurrent().getAttribute("userId");
 
         if (userId == null) {
-            add(new H3("Please sign in to view your profile."));
+            getStyle().set("align-items", "center").set("justify-content", "center");
+            Span msg = new Span("Please sign in to view your profile.");
+            msg.getStyle().set("color", GREY_TEXT).set("font-size", "14px");
+            Button signIn = new Button("Sign in");
+            signIn.getStyle().set("background-color", BLUE).set("color", WHITE)
+                    .set("border", "none").set("border-radius", "8px")
+                    .set("padding", "10px 24px").set("cursor", "pointer")
+                    .set("margin-top", "12px");
+            signIn.addClickListener(e -> UI.getCurrent().navigate("signin"));
+            add(msg, signIn);
             return;
         }
 
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            add(new H3("User not found."));
+            add(new Paragraph("User not found."));
             return;
         }
 
         User user = userOpt.get();
 
-        // ── Top nav bar ───────────────────────────
+        // ── Nav ───────────────────────────────────
         HorizontalLayout nav = new HorizontalLayout();
         nav.setWidthFull();
+        nav.setAlignItems(Alignment.CENTER);
         nav.getStyle()
-                .set("background-color", "white")
-                .set("padding", "12px 16px")
-                .set("border-bottom", "1px solid #e0e0e0");
+                .set("background-color", DARK_NAV)
+                .set("padding", "14px 20px")
+                .set("border-bottom", "1px solid " + BORDER);
 
         Button back = new Button("←");
         back.getStyle().set("background", "none").set("border", "none")
-                .set("cursor", "pointer").set("font-size", "18px");
+                .set("cursor", "pointer").set("font-size", "20px")
+                .set("color", GREY_TEXT).set("padding", "0");
         back.addClickListener(e -> UI.getCurrent().navigate("matches"));
 
-        nav.add(back);
+        Span navTitle = new Span("Profile");
+        navTitle.getStyle().set("font-weight", "bold").set("font-size", "16px")
+                .set("color", WHITE).set("flex", "1").set("text-align", "center");
 
-        // ── Main card ─────────────────────────────
+        Span settingsIcon = new Span("⚙");
+        settingsIcon.getStyle().set("font-size", "20px").set("cursor", "pointer")
+                .set("color", GREY_TEXT);
+        settingsIcon.addClickListener(e -> UI.getCurrent().navigate("settings"));
+
+        nav.add(back, navTitle, settingsIcon);
+
+        // ── Profile card ──────────────────────────
         Div card = new Div();
-        card.setWidthFull();
         card.getStyle()
-                .set("background-color", "white")
+                .set("background-color", DARK_CARD)
                 .set("margin", "16px")
-                .set("border-radius", "8px")
-                .set("border", "1px solid #e0e0e0")
+                .set("border-radius", "12px")
+                .set("border", "1px solid " + BORDER)
                 .set("width", "calc(100% - 32px)")
                 .set("box-sizing", "border-box")
                 .set("padding", "24px 16px");
 
-        // Settings icon top right
-        Div cardTop = new Div();
-        cardTop.getStyle()
-                .set("display", "flex")
-                .set("justify-content", "flex-end")
-                .set("width", "100%");
-
-        Span settingsIcon = new Span("⚙");
-        settingsIcon.getStyle()
-                .set("font-size", "22px")
-                .set("cursor", "pointer")
-                .set("color", "#555");
-        settingsIcon.addClickListener(e -> UI.getCurrent().navigate("settings"));
-
-        cardTop.add(settingsIcon);
-
-        // ── Profile section ───────────────────────
+        // Avatar
         VerticalLayout profileSection = new VerticalLayout();
         profileSection.setAlignItems(Alignment.CENTER);
         profileSection.setPadding(false);
         profileSection.setSpacing(false);
         profileSection.getStyle().set("gap", "8px").set("margin-bottom", "24px");
 
-        // Avatar circle
         Div avatar = new Div();
         avatar.getStyle()
-                .set("width", "80px")
-                .set("height", "80px")
+                .set("width", "80px").set("height", "80px")
                 .set("border-radius", "50%")
-                .set("border", "2px solid #333")
-                .set("display", "flex")
-                .set("align-items", "center")
+                .set("border", "2px solid " + BLUE)
+                .set("display", "flex").set("align-items", "center")
                 .set("justify-content", "center")
-                .set("font-size", "36px")
-                .set("color", "#555");
+                .set("font-size", "36px").set("background-color", "#1c1c1e");
         avatar.add(new Span("👤"));
 
-        // Username
         Span username = new Span(user.getUsername());
-        username.getStyle()
-                .set("font-size", "18px")
-                .set("font-weight", "bold")
-                .set("margin-top", "8px");
+        username.getStyle().set("font-size", "18px").set("font-weight", "bold")
+                .set("color", WHITE).set("margin-top", "8px");
 
-        // Favourite team — show "[Team] Fan" or prompt to set
         String favTeamText = "No favourite team set";
         if (user.getFavTeamId() != null) {
             favTeamText = teamRepository.findById(user.getFavTeamId())
-                    .map(t -> t.getTeamName() + " Fan")
-                    .orElse("No favourite team set");
+                    .map(t -> t.getTeamName() + " Fan").orElse("No favourite team set");
         }
         Span favTeam = new Span(favTeamText);
-        favTeam.getStyle()
-                .set("font-size", "14px")
-                .set("text-decoration", "underline")
-                .set("cursor", "pointer")
-                .set("color", "#333");
+        favTeam.getStyle().set("font-size", "13px").set("color", BLUE)
+                .set("cursor", "pointer");
 
         profileSection.add(avatar, username, favTeam);
 
-        // ── TOTS / MOTS box ───────────────────────
+        // ── Stats box ─────────────────────────────
         Div statsBox = new Div();
         statsBox.setWidthFull();
         statsBox.getStyle()
-                .set("border", "1px solid #e0e0e0")
-                .set("border-radius", "8px")
+                .set("border", "1px solid " + BORDER)
+                .set("border-radius", "10px")
                 .set("padding", "16px")
-                .set("margin-bottom", "16px");
+                .set("margin-bottom", "16px")
+                .set("background-color", "#222226");
 
-        // Team of the season — user's highest avg rated team
         Span totsLabel = new Span("Team of the season");
-        totsLabel.getStyle().set("font-size", "13px").set("color", "#999");
+        totsLabel.getStyle().set("font-size", "12px").set("color", GREY_TEXT)
+                .set("letter-spacing", "0.5px");
 
         String totsValue = "No team ratings yet";
         List<Long> topTeams = ratingRepository.findTopRatedTeamByUser(userId);
         if (!topTeams.isEmpty()) {
             totsValue = teamRepository.findById(topTeams.get(0))
-                    .map(Team::getTeamName)
-                    .orElse("Unknown team");
+                    .map(Team::getTeamName).orElse("Unknown");
         }
 
         Span totsName = new Span(totsValue);
-        totsName.getStyle()
-                .set("font-size", "15px")
-                .set("font-weight", "bold")
-                .set("margin-top", "4px")
-                .set("display", "block");
+        totsName.getStyle().set("font-size", "15px").set("font-weight", "bold")
+                .set("color", WHITE).set("display", "block").set("margin", "4px 0 16px 0");
 
-        // Spacer
-        Div spacer = new Div();
-        spacer.getStyle().set("height", "16px");
-
-        // Match of the season — user's highest rated fixture
         Span motsLabel = new Span("Match of the season");
-        motsLabel.getStyle().set("font-size", "13px").set("color", "#999");
+        motsLabel.getStyle().set("font-size", "12px").set("color", GREY_TEXT)
+                .set("letter-spacing", "0.5px");
 
         String motsValue = "No fixture ratings yet";
         List<Long> topFixtures = ratingRepository.findTopRatedFixtureByUser(userId);
         if (!topFixtures.isEmpty()) {
-            Long topFixtureId = topFixtures.get(0);
-            Optional<Fixture> topFixture = fixtureRepository.findById(topFixtureId);
+            Optional<Fixture> topFixture = fixtureRepository.findById(topFixtures.get(0));
             if (topFixture.isPresent()) {
                 Fixture f = topFixture.get();
-                String homeName = teamRepository.findById(f.getHomeTeamId())
-                        .map(Team::getTeamName).orElse("?");
-                String awayName = teamRepository.findById(f.getAwayTeamId())
-                        .map(Team::getTeamName).orElse("?");
-                motsValue = homeName + " vs " + awayName;
+                String home = teamRepository.findById(f.getHomeTeamId()).map(Team::getTeamName).orElse("?");
+                String away = teamRepository.findById(f.getAwayTeamId()).map(Team::getTeamName).orElse("?");
+                motsValue = home + " vs " + away;
             }
         }
 
         Span motsName = new Span(motsValue);
-        motsName.getStyle()
-                .set("font-size", "15px")
-                .set("font-weight", "bold")
-                .set("margin-top", "4px")
-                .set("display", "block");
+        motsName.getStyle().set("font-size", "15px").set("font-weight", "bold")
+                .set("color", WHITE).set("display", "block").set("margin-top", "4px");
 
-        statsBox.add(totsLabel, totsName, spacer, motsLabel, motsName);
+        statsBox.add(totsLabel, totsName, motsLabel, motsName);
 
-        // ── Reviews row ───────────────────────────
-        Div reviewsRow = buildNavRow("Reviews", "reviews");
+        // ── Nav rows ──────────────────────────────
+        card.add(profileSection, statsBox,
+                buildNavRow("Diary", "diary"),
+                buildNavRow("Reviews", "reviews"));
 
-        // ── Diary row ─────────────────────────────
-        Div diaryRow = buildNavRow("Diary", "diary");
-
-        card.add(cardTop, profileSection, statsBox, reviewsRow, diaryRow);
         add(nav, card);
     }
 
-    // Clickable nav row with chevron — like the wireframe
     private Div buildNavRow(String label, String route) {
         Div row = new Div();
         row.setWidthFull();
         row.getStyle()
-                .set("display", "flex")
-                .set("align-items", "center")
+                .set("display", "flex").set("align-items", "center")
                 .set("justify-content", "space-between")
                 .set("padding", "14px 16px")
-                .set("border", "1px solid #e0e0e0")
-                .set("border-radius", "8px")
-                .set("margin-bottom", "12px")
-                .set("cursor", "pointer")
-                .set("background-color", "white");
+                .set("border", "1px solid #3a3a3e")
+                .set("border-radius", "8px").set("margin-bottom", "12px")
+                .set("cursor", "pointer").set("background-color", "#222226");
+
+        row.getElement().addEventListener("mouseover",
+                e -> row.getStyle().set("background-color", "#303036"));
+        row.getElement().addEventListener("mouseout",
+                e -> row.getStyle().set("background-color", "#222226"));
 
         Span text = new Span(label);
-        text.getStyle().set("font-size", "14px").set("font-weight", "bold");
+        text.getStyle().set("font-size", "14px").set("font-weight", "bold").set("color", "#ffffff");
 
         Span chevron = new Span("›");
-        chevron.getStyle().set("font-size", "20px").set("color", "#555");
+        chevron.getStyle().set("font-size", "20px").set("color", "rgb(0,97,127)");
 
         row.add(text, chevron);
         row.addClickListener(e -> UI.getCurrent().navigate(route));

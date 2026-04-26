@@ -16,10 +16,10 @@ public class UserService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    // ─────────────────────────────────────────
+    // -----------------------------------
     // AUTH
-    // ─────────────────────────────────────────
-
+    // ------------------------------------
+    //REGISTER USER
     public boolean register(String email, String password, String username, Long favTeamId) {
         if (userRepository.findByEmail(email).isPresent()) return false;
 
@@ -32,7 +32,7 @@ public class UserService {
         userRepository.save(user);
         return true;
     }
-
+    //LOGIN
     public User login(String email, String password) {
         return userRepository.findByEmail(email)
                 .filter(u -> encoder.matches(password, u.getPasswordHash()))

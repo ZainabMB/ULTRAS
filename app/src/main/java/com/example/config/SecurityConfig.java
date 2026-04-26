@@ -21,7 +21,8 @@ public class SecurityConfig {
                         .requestCache(new HttpSessionRequestCache()))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/signup", "/profile").permitAll() //public
+                        .requestMatchers("/", "/login", "/signup", "/profile").permitAll()
+                        .requestMatchers("/matches", "/leagues", "/league/**", "/fixture/**").permitAll() // guest accessible
                         .requestMatchers("/VAADIN/**", "/vaadinServlet/**", "/frontend/**").permitAll()
                         .requestMatchers("/connect/**", "/PUSH/**").permitAll()
                         .anyRequest().authenticated()

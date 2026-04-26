@@ -22,11 +22,22 @@ import java.util.*;
 @PageTitle("Ultras - Matches")
 public class MatchesView extends VerticalLayout {
 
+    // ── Theme ─────────────────────────────────────
+    private static final String BLUE      = "rgb(0,97,127)";
+    private static final String DARK      = "#1c1c1e";
+    private static final String DARK_CARD = "#2a2a2e";
+    private static final String DARK_NAV  = "#232326";
+    private static final String BORDER    = "#3a3a3e";
+    private static final String GREY_TEXT = "#a0a0a8";
+    private static final String WHITE     = "#ffffff";
+
     private final FixtureService fixtureService;
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
 
-    public MatchesView(@Autowired FixtureService fixtureService, FixtureRepository fixtureRepository, TeamRepository teamRepository) {
+    public MatchesView(@Autowired FixtureService fixtureService,
+                       FixtureRepository fixtureRepository,
+                       TeamRepository teamRepository) {
         this.fixtureService = fixtureService;
         this.fixtureRepository = fixtureRepository;
         this.teamRepository = teamRepository;
@@ -34,111 +45,159 @@ public class MatchesView extends VerticalLayout {
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("background-color", "#f5f5f5");
+        getStyle().set("background-color", DARK);
 
         buildView();
     }
 
     private void buildView() {
 
-        // ------------------------------------------------
-        // NAV BAR
-        // ------------------------------------------------
+        // ── Nav bar ───────────────────────────────
         HorizontalLayout nav = new HorizontalLayout();
         nav.setWidthFull();
         nav.setAlignItems(Alignment.CENTER);
         nav.getStyle()
-                .set("background-color", "white")
-                .set("padding", "12px 16px")
-                .set("border-bottom", "1px solid #e0e0e0")
-                .set("position", "relative");
+                .set("background-color", DARK_NAV)
+                .set("padding", "14px 20px")
+                .set("border-bottom", "1px solid " + BORDER)
+                .set("display", "flex")
+                .set("justify-content", "space-between")
+                .set("gap", "16px");
 
+        // Left: profile icon
         Button profileBtn = new Button("👤");
-        profileBtn.getStyle().set("background", "none").set("border", "none")
-                .set("cursor", "pointer").set("font-size", "18px").set("padding", "0");
+        profileBtn.getStyle()
+                .set("background", "none").set("border", "none")
+                .set("cursor", "pointer").set("font-size", "20px")
+                .set("padding", "0").set("color", GREY_TEXT)
+                .set("min-width", "36px").set("flex-shrink", "0");
         profileBtn.addClickListener(e -> UI.getCurrent().navigate("profile"));
 
+        // Centre: ULTRAS title
         Span navTitle = new Span("ULTRAS");
         navTitle.getStyle()
-                .set("font-weight", "bold")
-                .set("font-size", "16px")
-                .set("flex", "1")
-                .set("text-align", "center");
+                .set("font-weight", "bold").set("font-size", "18px")
+                .set("letter-spacing", "4px").set("color", WHITE)
+                .set("flex-shrink", "0");
 
+        // Right: search — styled grey to match dark theme
         SearchComponent search = new SearchComponent(fixtureRepository, teamRepository);
-        search.getStyle().set("flex", "1").set("margin", "0 12px");
+        search.getStyle()
+                .set("max-width", "220px")
+                .set("flex-shrink", "0")
+                .set("--lumo-contrast-10pct", "#3a3a3e")
+                .set("--lumo-base-color", "#2a2a2e")
+                .set("--lumo-body-text-color", GREY_TEXT)
+                .set("--lumo-secondary-text-color", GREY_TEXT);
 
-        nav.add(profileBtn, navTitle, search);
+        // Spacer pushes title to true centre
+        Div leftGroup = new Div();
+        leftGroup.getStyle().set("display", "flex").set("align-items", "center")
+                .set("gap", "12px").set("flex", "1");
+        leftGroup.add(profileBtn, navTitle);
 
+        Div rightGroup = new Div();
+        rightGroup.getStyle().set("display", "flex").set("align-items", "center")
+                .set("flex", "1").set("justify-content", "flex-end");
+        rightGroup.add(search);
 
-        //
-        // TABS
-        //
+        nav.add(leftGroup, rightGroup);
+
+        // ── Tabs ──────────────────────────────────
         HorizontalLayout tabs = new HorizontalLayout();
         tabs.setWidthFull();
         tabs.getStyle()
-                .set("background-color", "white")
-                .set("padding", "8px 16px")
-                .set("border-bottom", "1px solid #e0e0e0")
+                .set("background-color", DARK_NAV)
+                .set("padding", "10px 16px")
+                .set("border-bottom", "1px solid " + BORDER)
                 .set("gap", "8px");
 
         Button matchesTab = new Button("Matches");
         matchesTab.getStyle()
-                .set("background-color", "#1a1a1a")
-                .set("color", "white")
+                .set("background-color", BLUE)
+                .set("color", WHITE)
+                .set("border", "none")
                 .set("border-radius", "20px")
-                .set("padding", "6px 20px");
+                .set("padding", "6px 20px")
+                .set("cursor", "pointer")
+                .set("font-weight", "600");
 
         Button leaguesTab = new Button("Leagues");
         leaguesTab.getStyle()
-                .set("background-color", "white")
-                .set("color", "#1a1a1a")
-                .set("border", "1px solid #ccc")
+                .set("background-color", "transparent")
+                .set("color", GREY_TEXT)
+                .set("border", "1px solid " + BORDER)
                 .set("border-radius", "20px")
-                .set("padding", "6px 20px");
+                .set("padding", "6px 20px")
+                .set("cursor", "pointer");
         leaguesTab.addClickListener(e -> UI.getCurrent().navigate("leagues"));
 
         tabs.add(matchesTab, leaguesTab);
 
-        // ───────────────────────────────────────────────
-        // FILTER BAR
-        // ───────────────────────────────────────────────
+        // ── Filter bar ────────────────────────────
         HorizontalLayout filterBar = new HorizontalLayout();
         filterBar.setWidthFull();
+        filterBar.setAlignItems(Alignment.CENTER);
         filterBar.getStyle()
-                .set("padding", "8px 16px")
+                .set("padding", "10px 16px")
+                .set("background-color", DARK)
                 .set("gap", "8px");
 
-        Button todayBtn = new Button("Today");
-        Button yesterdayBtn = new Button("Yesterday");
+        Button todayBtn = buildFilterButton("Today", true);
+        Button yesterdayBtn = buildFilterButton("Yesterday", false);
 
         DatePicker datePicker = new DatePicker();
         datePicker.setPlaceholder("Pick a date");
+        datePicker.getStyle()
+                .set("--vaadin-input-field-background", DARK_CARD)
+                .set("--vaadin-input-field-value-color", WHITE)
+                .set("--vaadin-input-field-placeholder-color", GREY_TEXT)
+                .set("--vaadin-input-field-border-color", BORDER)
+                .set("--lumo-contrast-10pct", BORDER)
+                .set("--lumo-base-color", DARK_CARD)
+                .set("--lumo-body-text-color", WHITE)
+                .set("--lumo-secondary-text-color", GREY_TEXT)
+                .set("color", GREY_TEXT)
+                .set("font-size", "13px");
 
         LocalDate earliest = fixtureService.getEarliestFixtureDate();
         LocalDate today = LocalDate.now();
-
         datePicker.setMin(earliest);
         datePicker.setMax(today);
 
         filterBar.add(todayBtn, yesterdayBtn, datePicker);
 
-        // ───────────────────────────────────────────────
-        // FEED AREA
-        // ───────────────────────────────────────────────
+        // ── Feed area ─────────────────────────────
         VerticalLayout feed = new VerticalLayout();
         feed.setWidthFull();
-        feed.setPadding(true);
+        feed.setPadding(false);
         feed.setSpacing(false);
-        feed.getStyle().set("gap", "12px");
+        feed.getStyle()
+                .set("padding", "16px")
+                .set("gap", "12px")
+                .set("background-color", DARK);
 
-        // Default load: today
         loadFixturesForDate(today, feed);
 
-        todayBtn.addClickListener(e -> loadFixturesForDate(today, feed));
-        yesterdayBtn.addClickListener(e -> loadFixturesForDate(today.minusDays(1), feed));
+        // Filter button active state toggles
+        todayBtn.addClickListener(e -> {
+            setFilterActive(todayBtn, true);
+            setFilterActive(yesterdayBtn, false);
+            datePicker.clear();
+            loadFixturesForDate(today, feed);
+        });
+
+        yesterdayBtn.addClickListener(e -> {
+            setFilterActive(todayBtn, false);
+            setFilterActive(yesterdayBtn, true);
+            datePicker.clear();
+            loadFixturesForDate(today.minusDays(1), feed);
+        });
+
         datePicker.addValueChangeListener(e -> {
             if (e.getValue() != null) {
+                setFilterActive(todayBtn, false);
+                setFilterActive(yesterdayBtn, false);
                 loadFixturesForDate(e.getValue(), feed);
             }
         });
@@ -146,58 +205,67 @@ public class MatchesView extends VerticalLayout {
         add(nav, tabs, filterBar, feed);
     }
 
-    // ───────────────────────────────────────────────
-    // LOAD FIXTURES FOR A GIVEN DATE
-    // ───────────────────────────────────────────────
+    // ── Load fixtures for date ────────────────────
     private void loadFixturesForDate(LocalDate date, VerticalLayout feed) {
         feed.removeAll();
 
         List<FixtureResponse> fixtures = fixtureService.getFixturesByDate(date);
 
         if (fixtures.isEmpty()) {
-            Paragraph empty = new Paragraph("No fixtures found for this date.");
-            empty.getStyle()
-                    .set("color", "#999")
-                    .set("text-align", "center")
-                    .set("margin-top", "32px");
-            feed.add(empty);
+            Div emptyState = new Div();
+            emptyState.getStyle()
+                    .set("text-align", "center").set("padding", "48px 16px");
+
+            Span emptyMsg = new Span("No fixtures found for this date");
+            emptyMsg.getStyle().set("color", GREY_TEXT).set("font-size", "14px");
+
+            emptyState.add(emptyMsg);
+            feed.add(emptyState);
             return;
         }
 
-        // Group fixtures by league
-   Map<String, List<FixtureResponse>> byLeague = new LinkedHashMap<>();
-      for (FixtureResponse f : fixtures) {
+        // Group by league
+        Map<String, List<FixtureResponse>> byLeague = new LinkedHashMap<>();
+        for (FixtureResponse f : fixtures) {
             String league = f.getLeagueName() != null ? f.getLeagueName() : "Unknown League";
             byLeague.computeIfAbsent(league, k -> new ArrayList<>()).add(f);
         }
 
-        // Render each league group
         for (Map.Entry<String, List<FixtureResponse>> entry : byLeague.entrySet()) {
             Div leagueGroup = new Div();
             leagueGroup.setWidthFull();
             leagueGroup.getStyle()
-                    .set("background-color", "white")
-                    .set("border", "1px solid #e0e0e0")
-                    .set("border-radius", "8px")
+                    .set("background-color", DARK_CARD)
+                    .set("border", "1px solid " + BORDER)
+                    .set("border-radius", "10px")
                     .set("overflow", "hidden")
                     .set("margin-bottom", "12px");
 
             // League header
             Div leagueHeader = new Div();
             leagueHeader.getStyle()
-                    .set("padding", "8px 12px")
-                    .set("border-bottom", "1px solid #f0f0f0")
-                    .set("background-color", "#fafafa");
+                    .set("padding", "8px 14px")
+                    .set("border-bottom", "1px solid " + BORDER)
+                    .set("background-color", "#222226")
+                    .set("display", "flex")
+                    .set("align-items", "center")
+                    .set("gap", "8px");
+
+            // Blue left accent bar
+            Div accentBar = new Div();
+            accentBar.getStyle()
+                    .set("width", "3px").set("height", "16px")
+                    .set("background-color", BLUE)
+                    .set("border-radius", "2px");
 
             Span leagueName = new Span(entry.getKey());
             leagueName.getStyle()
-                    .set("font-weight", "bold")
-                    .set("font-size", "13px");
+                    .set("font-weight", "bold").set("font-size", "12px")
+                    .set("color", WHITE).set("letter-spacing", "0.5px");
 
-            leagueHeader.add(leagueName);
+            leagueHeader.add(accentBar, leagueName);
             leagueGroup.add(leagueHeader);
 
-            // Match cards
             for (FixtureResponse fixture : entry.getValue()) {
                 leagueGroup.add(buildMatchCard(fixture));
             }
@@ -206,51 +274,66 @@ public class MatchesView extends VerticalLayout {
         }
     }
 
-    // ───────────────────────────────────────────────
-    // MATCH CARD
-    // ───────────────────────────────────────────────
+    // ── Match card ────────────────────────────────
     private Div buildMatchCard(FixtureResponse fixture) {
         Div card = new Div();
         card.getStyle()
-                .set("padding", "10px 12px")
-                .set("border-bottom", "1px solid #f0f0f0")
+                .set("padding", "12px 14px")
+                .set("border-bottom", "1px solid " + BORDER)
                 .set("cursor", "pointer")
                 .set("display", "flex")
                 .set("align-items", "center")
-                .set("gap", "12px");
+                .set("gap", "12px")
+                .set("transition", "background-color 0.15s");
+
+        card.getElement().addEventListener("mouseover",
+                e -> card.getStyle().set("background-color", "#303036"));
+        card.getElement().addEventListener("mouseout",
+                e -> card.getStyle().set("background-color", "transparent"));
 
         card.addClickListener(e ->
                 UI.getCurrent().navigate("fixture/" + fixture.getFixtureId() + "?from=matches"));
-        // Date + FT
-        Div dateCol = new Div();
-        dateCol.getStyle()
-                .set("min-width", "60px")
+
+        // Status/date column
+        Div statusCol = new Div();
+        statusCol.getStyle()
+                .set("min-width", "52px")
                 .set("display", "flex")
                 .set("flex-direction", "column")
-                .set("align-items", "center");
+                .set("align-items", "center")
+                .set("gap", "2px");
 
-        dateCol.add(new Span(fixture.getDate().toString()));
-        dateCol.add(new Span(fixture.getState() != null ? fixture.getState() : "FT"));
+        Span dateSpan = new Span(fixture.getDate() != null
+                ? fixture.getDate().toString().substring(5) : ""); // MM-DD
+        dateSpan.getStyle().set("font-size", "10px").set("color", GREY_TEXT);
+
+        Span stateSpan = new Span(fixture.getState() != null ? fixture.getState() : "FT");
+        stateSpan.getStyle()
+                .set("font-size", "11px").set("font-weight", "bold")
+                .set("color", BLUE).set("letter-spacing", "0.5px");
+
+        statusCol.add(dateSpan, stateSpan);
 
         // Divider
         Div divider = new Div();
         divider.getStyle()
-                .set("width", "1px")
-                .set("height", "36px")
-                .set("background-color", "#e0e0e0");
+                .set("width", "1px").set("height", "36px")
+                .set("background-color", BORDER);
 
-        // Teams
+        // Teams column
         Div teamsCol = new Div();
         teamsCol.getStyle()
                 .set("flex", "1")
                 .set("display", "flex")
                 .set("flex-direction", "column")
-                .set("gap", "3px");
+                .set("gap", "4px");
 
-        teamsCol.add(buildTeamRow(fixture.getHomeTeamName(), fixture.getHomeScore()));
-        teamsCol.add(buildTeamRow(fixture.getAwayTeamName(), fixture.getAwayScore()));
+        teamsCol.add(
+                buildTeamRow(fixture.getHomeTeamName(), fixture.getHomeScore()),
+                buildTeamRow(fixture.getAwayTeamName(), fixture.getAwayScore())
+        );
 
-        card.add(dateCol, divider, teamsCol);
+        card.add(statusCol, divider, teamsCol);
         return card;
     }
 
@@ -258,9 +341,50 @@ public class MatchesView extends VerticalLayout {
         Div row = new Div();
         row.getStyle()
                 .set("display", "flex")
-                .set("justify-content", "space-between");
+                .set("justify-content", "space-between")
+                .set("align-items", "center");
 
-        row.add(new Span(teamName), new Span(String.valueOf(score)));
+        Span name = new Span(teamName);
+        name.getStyle().set("font-size", "13px").set("color", WHITE);
+
+        Span scoreSpan = new Span(String.valueOf(score));
+        scoreSpan.getStyle()
+                .set("font-size", "13px").set("font-weight", "bold")
+                .set("color", WHITE);
+
+        row.add(name, scoreSpan);
         return row;
+    }
+
+    // ── Filter button helpers ─────────────────────
+    private Button buildFilterButton(String label, boolean active) {
+        Button btn = new Button(label);
+        setFilterActive(btn, active);
+        return btn;
+    }
+
+    private void setFilterActive(Button btn, boolean active) {
+        if (btn == null) return;
+        if (active) {
+            btn.getStyle()
+                    .set("background-color", BLUE)
+                    .set("color", WHITE)
+                    .set("border", "none")
+                    .set("border-radius", "20px")
+                    .set("padding", "6px 16px")
+                    .set("font-size", "13px")
+                    .set("font-weight", "600")
+                    .set("cursor", "pointer");
+        } else {
+            btn.getStyle()
+                    .set("background-color", "transparent")
+                    .set("color", GREY_TEXT)
+                    .set("border", "1px solid " + BORDER)
+                    .set("border-radius", "20px")
+                    .set("padding", "6px 16px")
+                    .set("font-size", "13px")
+                    .set("font-weight", "400")
+                    .set("cursor", "pointer");
+        }
     }
 }
