@@ -100,7 +100,8 @@ public class ProfileView extends VerticalLayout {
                 .set("border", "1px solid " + BORDER)
                 .set("width", "calc(100% - 32px)")
                 .set("box-sizing", "border-box")
-                .set("padding", "24px 16px");
+                .set("padding", "24px 16px")
+                ;
 
         // Avatar
         VerticalLayout profileSection = new VerticalLayout();
@@ -142,7 +143,8 @@ public class ProfileView extends VerticalLayout {
                 .set("border-radius", "10px")
                 .set("padding", "16px")
                 .set("margin-bottom", "16px")
-                .set("background-color", "#222226");
+                .set("background-color", "#222226")
+                .set("width", "95%%");
 
         Span totsLabel = new Span("Team of the season");
         totsLabel.getStyle().set("font-size", "12px").set("color", GREY_TEXT)
@@ -198,7 +200,7 @@ public class ProfileView extends VerticalLayout {
                 .set("padding", "14px 16px")
                 .set("border", "1px solid #3a3a3e")
                 .set("border-radius", "8px").set("margin-bottom", "12px")
-                .set("cursor", "pointer").set("background-color", "#222226");
+                .set("cursor", "pointer").set("background-color", "#222226").set("width", "95%");
 
         row.getElement().addEventListener("mouseover",
                 e -> row.getStyle().set("background-color", "#303036"));

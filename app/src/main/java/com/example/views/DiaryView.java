@@ -111,7 +111,7 @@ public class DiaryView extends VerticalLayout {
                 .set("border", "1px solid " + BORDER)
                 .set("border-radius", "10px")
                 .set("padding", "14px 16px")
-                .set("cursor", "pointer");
+                .set("cursor", "pointer").set("width", "95%");
 
         card.getElement().addEventListener("mouseover",
                 e -> card.getStyle().set("background-color", "#303036"));

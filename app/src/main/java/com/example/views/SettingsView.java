@@ -91,7 +91,7 @@ public class SettingsView extends VerticalLayout {
         content.setWidthFull();
         content.setPadding(true);
         content.setSpacing(false);
-        content.getStyle().set("gap", "16px");
+        content.getStyle().set("gap", "16px").set("width", "95%");
 
         content.add(buildSectionCard("Username", buildUsernameSection(user, userId, userService)));
         content.add(buildSectionCard("Change Password", buildPasswordSection(userId, userService)));
