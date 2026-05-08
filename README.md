@@ -229,4 +229,4 @@ Ultras integrates with the [Sportmonks v3 Football API](https://docs.sportmonks.
 
 ## Author
 
-Zainab MB — UWE Bristol, BSc Computer Science, 2025–26
+Zainab MB — UWE Bristol, BSc Software Engineering, 2025–26
